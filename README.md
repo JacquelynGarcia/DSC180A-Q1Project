@@ -28,5 +28,5 @@ Each model captures a unique dimension of factuality, contributing to a broader 
 
 ### Clone the repository
 ```bash
-git clone https://github.com/<your-username>/DSC180A-Q1Project.git
+git clone https://github.com/JacquelynGarcia/DSC180A-Q1Project.git
 cd DSC180A-Q1Project
