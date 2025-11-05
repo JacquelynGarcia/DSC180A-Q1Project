@@ -27,14 +27,12 @@ def main():
     val_results_freq = predict_frequency_model(df_val, model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq)
     test_results_freq = predict_frequency_model(df_test, model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq)
     print("Frequency model complete.")
-    print(val_results_freq.head())
 
     echo_cfg = cfg["models"]["echo_chamber"]
     model_echo, vectorizer_echo, le_echo, concentration_map = build_echo_chamber_model(df_train, **echo_cfg)
     val_results_echo = predict_echo_chamber_model(df_val, model_echo, vectorizer_echo, le_echo, concentration_map)
     test_results_echo = predict_echo_chamber_model(df_test, model_echo, vectorizer_echo, le_echo, concentration_map)
     print("Echo Chamber model complete.")
-    print(val_results_echo.head())
 
     sens_cfg = cfg["models"]["sensationalism"]
     sens_pipeline, sens_preproc, sens_meta, sens_num = build_sensationalism_model(
@@ -42,14 +40,12 @@ def main():
     val_results_sens = predict_sensationalism_model(df_val, sens_pipeline, sens_preproc, sens_meta, sens_num)
     test_results_sens = predict_sensationalism_model(df_test, sens_pipeline, sens_preproc, sens_meta, sens_num)
     print("Sensationalism model complete.")
-    print(val_results_sens.head())
 
     cred_cfg = cfg["models"]["credibility"]
     cred_pipeline, party_enc_cred = build_credibility_model(df_train, df_val, df_test, **cred_cfg)
     val_results_cred = predict_credibility_model(df_val, cred_pipeline,party_enc_cred)
     test_results_cred = predict_credibility_model(df_test, cred_pipeline,party_enc_cred)
     print("Credibility model complete.")
-    print(val_results_cred.head())
 
 
 if __name__ == "__main__":
