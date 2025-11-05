@@ -138,6 +138,7 @@ Features:
 - Political relevance flag (`is_political`)  
 
 Model: `XGBClassifier`
+
 Outputs:
 - `predicted_echo_class`
 - `echo_chamber_score` - probability-based score of ideological clustering  
@@ -152,7 +153,7 @@ Features:
 - Sentiment polarity and subjectivity 
 - Metadata such as `speaker`, `party`, and `context`  
 
-Model: XGBoost within a `scikit-learn` Pipeline using `ColumnTransformer`  
+Model: `XGBoost` within a `scikit-learn` Pipeline using `ColumnTransformer`  
 Outputs:
 - `predicted_sensationalism`
 - `sensationalism_score` - numeric probability for sensational tone  
@@ -166,7 +167,7 @@ Features:
 - Political party encoding  
 - Subjectivity score 
 
-Model: XGBoost Pipeline  
+Model: `XGBoost` Pipeline  
 Outputs:
 - `predicted_credibility`
 - `credibility_score` - predicted probability of a credible statement  
