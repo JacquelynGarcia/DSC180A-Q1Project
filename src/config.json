@@ -1,5 +1,30 @@
 {
+  "data": {
     "train_path": "data/train2.tsv",
     "val_path": "data/val2.tsv",
     "test_path": "data/test2.tsv"
+  },
+
+  "models": {
+    "frequency": {
+      "n_estimators": 200,
+      "random_state": 42
+    },
+    "echo_chamber": {
+      "n_estimators": 300,
+      "max_depth": 6,
+      "learning_rate": 0.1,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "random_state": 42
+    },
+    "sensationalism": {
+      "n_estimators": 300,
+      "max_depth": 6,
+      "learning_rate": 0.1,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "random_state": 42
+    }
+  }
 }

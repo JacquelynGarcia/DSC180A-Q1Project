@@ -1,10 +1,18 @@
 import pandas as pd
 import numpy as np
+import re
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.compose import ColumnTransformer
+from xgboost import XGBClassifier
+from scipy.sparse import hstack
+from sklearn.utils import resample
+from textblob import TextBlob
 
+
+# Load in full LiarPLUS datasets
 def load_datasets(train_path, val_path, test_path):
     cols = [
     "index", "id", "label", "statement", "subject", "speaker", "job", "state",
@@ -26,7 +34,7 @@ def load_datasets(train_path, val_path, test_path):
 
     return dfs
 
-def build_frequency_model(df_train):
+def build_frequency_model(df_train, n_estimators=200, random_state=42):
     tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
     tfidf_matrix_train = tfidf.fit_transform(df_train['statement'])
 
@@ -61,12 +69,13 @@ def build_frequency_model(df_train):
 
     model = Pipeline([
         ("scaler", StandardScaler()), 
-        ("clf", RandomForestClassifier(n_estimators=200, random_state=42))
+        ("clf", RandomForestClassifier(n_estimators=n_estimators, random_state=random_state))
     ])
     model.fit(X_train, y_train)
 
     return model, tfidf, count_vec, token_dict, buzzwords, le
 
+# Freqency Heuristic Model
 def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, le):
     def avg_word_freq(text):
         words = [w for w in text.lower().split() if w in token_dict]
@@ -96,3 +105,197 @@ def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, 
         "predicted_label": le.inverse_transform(preds),
         "frequency_heuristic_score": probs
     })
+
+# Echo Chamber Model
+def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_rate=0.1,
+                             subsample=0.8, colsample_bytree=0.8, random_state=42):
+    topic_party_counts = (df_train.groupby(["subject", "party"]).size().unstack(fill_value=0))
+
+    topic_party_counts["party_concentration"] = (topic_party_counts.max(axis=1) / topic_party_counts.sum(axis=1))
+
+    concentration_map = topic_party_counts["party_concentration"].to_dict()
+
+    df_train["echo_chamber"] = df_train["subject"].map(concentration_map)
+
+    def categorize_echo(value):
+        if value <= 0.4:
+            return 0
+        elif value <= 0.6:
+            return 1
+        elif value <= 0.8:
+            return 2
+        else:
+            return 3
+
+    df_train["echo_chamber_4class"] = df_train["echo_chamber"].apply(categorize_echo)
+
+    dfs = []
+    max_size = df_train["echo_chamber_4class"].value_counts().max()
+    for cls in df_train["echo_chamber_4class"].unique():
+        df_cls = df_train[df_train["echo_chamber_4class"] == cls]
+        df_cls_upsampled = resample(df_cls, replace=True, n_samples=max_size, random_state=42)
+        dfs.append(df_cls_upsampled)
+    df_train_bal = pd.concat(dfs).sample(frac=1, random_state=42).reset_index(drop=True)
+
+    df_train_bal["subject_length"] = df_train_bal["subject"].apply(lambda x: len(str(x).split(",")))
+    df_train_bal["is_political"] = df_train_bal["subject"].apply(lambda x: int("politics" in str(x).lower() or "election" in str(x).lower()))
+
+    le = LabelEncoder()
+    df_train_bal["party_encoded"] = le.fit_transform(df_train_bal["party"].fillna("none"))
+
+    vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
+    X_train_tfidf = vectorizer.fit_transform(df_train_bal["statement"])
+
+    X_train_full = hstack([X_train_tfidf, df_train_bal[["subject_length", "is_political", "party_encoded"]].values,])
+
+    y_train = df_train_bal["echo_chamber_4class"]
+
+    model = XGBClassifier(
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        learning_rate=learning_rate,
+        subsample=subsample,
+        colsample_bytree=colsample_bytree,
+        random_state=random_state,
+        eval_metric="mlogloss",
+    )
+
+    model.fit(X_train_full, y_train)
+
+    return model, vectorizer, le, concentration_map
+
+def predict_echo_chamber_model(df, model, vectorizer, le, concentration_map):
+    df = df.copy()
+    df["echo_chamber"] = df["subject"].map(concentration_map)
+
+    def categorize_echo(value):
+        if value <= 0.4:
+            return 0
+        elif value <= 0.6:
+            return 1
+        elif value <= 0.8:
+            return 2
+        else:
+            return 3
+
+    df["echo_chamber_4class"] = df["echo_chamber"].apply(categorize_echo)
+
+    df["subject_length"] = df["subject"].apply(lambda x: len(str(x).split(",")))
+    df["is_political"] = df["subject"].apply(lambda x: int("politics" in str(x).lower() or "election" in str(x).lower()))
+    df["party_encoded"] = le.fit_transform(df["party"].fillna("none"))
+
+    X_tfidf = vectorizer.transform(df["statement"])
+    X_full = hstack([X_tfidf, df[["subject_length", "is_political", "party_encoded"]].values])
+
+    preds = model.predict(X_full)
+    probs = model.predict_proba(X_full).max(axis=1)
+
+    return pd.DataFrame(
+        {
+            "id": df["id"],
+            "statement": df["statement"],
+            "predicted_echo_class": preds,
+            "echo_chamber_score": probs,
+        }
+    )
+
+# Sensationalism Model
+def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
+                               learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, random_state=42):
+    def map_sensationalism_from_counts(row):
+        total = row["barely_true"] + row["false"] + row["half_true"] + row["mostly_true"] + row["pants_on_fire"]
+        if total == 0:
+            return 1
+        score = (
+            2 * row["barely_true"] +
+            3 * row["false"] +
+            1 * row["half_true"] +
+            0.5 * row["mostly_true"] +
+            4 * row["pants_on_fire"]
+        ) / total
+        if score < 1.5:
+            return 0
+        elif score < 2.5:
+            return 1
+        else:
+            return 2
+
+    for df in [df_train, df_val, df_test]:
+        df["sensationalism"] = df.apply(map_sensationalism_from_counts, axis=1)
+
+    def extract_text_features(text):
+        text = str(text)
+        exclaim = text.count("!")
+        allcaps = len(re.findall(r"\b[A-Z]{2,}\b", text))
+        sens_words = sum(1 for w in [
+            "shocking","unbelievable","incredible","amazing","outrageous",
+            "disaster","terrifying","massive","horrifying","explosive",
+            "record-breaking","unprecedented","urgent","worst","best"
+        ] if w in text.lower())
+        blob = TextBlob(text)
+        return exclaim, allcaps, sens_words, abs(blob.sentiment.polarity), blob.sentiment.subjectivity
+
+    feats = df_train["statement"].apply(extract_text_features)
+    df_train[["exclaim","allcaps","sens_words","polarity","subjectivity"]] = pd.DataFrame(feats.tolist(), index=df_train.index)
+
+    text_col = "statement"
+    meta_features = ["speaker", "party", "context", "job"]
+    numeric_features = ["exclaim", "allcaps", "sens_words", "polarity", "subjectivity"]
+
+    preprocessor = ColumnTransformer([
+        ("text", TfidfVectorizer(max_features=5000, stop_words="english"), text_col),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), meta_features),
+        ("num", StandardScaler(), numeric_features)
+    ])
+
+    model = XGBClassifier(
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        max_depth=max_depth,
+        subsample=subsample,
+        colsample_bytree=colsample_bytree,
+        random_state=random_state,
+        eval_metric="mlogloss"
+    )
+
+    pipeline = Pipeline([
+        ("preprocess", preprocessor),
+        ("model", model)
+    ])
+
+    X_train = df_train[[text_col] + meta_features + numeric_features]
+    y_train = df_train["sensationalism"]
+
+    pipeline.fit(X_train, y_train)
+
+    return pipeline, preprocessor, meta_features, numeric_features
+
+def predict_sensationalism_model(df, pipeline, preprocessor, meta_features, numeric_features):
+    df = df.copy()
+
+    def extract_text_features(text):
+        text = str(text)
+        exclaim = text.count("!")
+        allcaps = len(re.findall(r"\b[A-Z]{2,}\b", text))
+        sens_words = sum(1 for w in [
+            "shocking","unbelievable","incredible","amazing","outrageous",
+            "disaster","terrifying","massive","horrifying","explosive",
+            "record-breaking","unprecedented","urgent","worst","best"
+        ] if w in text.lower())
+        blob = TextBlob(text)
+        return exclaim, allcaps, sens_words, abs(blob.sentiment.polarity), blob.sentiment.subjectivity
+
+    feats = df["statement"].apply(extract_text_features)
+    df[["exclaim","allcaps","sens_words","polarity","subjectivity"]] = pd.DataFrame(feats.tolist(), index=df.index)
+
+    X = df[["statement"] + meta_features + numeric_features]
+    preds = pipeline.predict(X)
+    probs = pipeline.predict_proba(X).max(axis=1)
+
+    return pd.DataFrame({
+        "id": df["id"],
+        "statement": df["statement"],
+        "predicted_sensationalism": preds,
+        "sensationalism_score": probs
+    })
+
