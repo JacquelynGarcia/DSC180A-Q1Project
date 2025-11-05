@@ -1,15 +1,10 @@
 import json
-import pandas as pd
 from predictive_models import (
     load_datasets, 
     build_frequency_model, 
-    predict_frequency_model,
     build_echo_chamber_model,
-    predict_echo_chamber_model,
     build_sensationalism_model,
-    predict_sensationalism_model,
     build_credibility_model,
-    predict_credibility_model
 )
 
 from articles import (
