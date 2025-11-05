@@ -28,6 +28,17 @@ Each model captures a unique dimension of factuality, contributing to a broader 
 
 - .gitignore - Ensures unnecessary files are not pushed to GitHub.
 
+## Dataset
+This project uses the LIAR-PLUS dataset, an extended version of the original LIAR dataset.
+This includes labeled political statements along with metadata such as subjects, speakers, party affiliations, and justifications.
+
+### Dataset Summary
+| Split | File | Description |
+|-------|------|--------------|
+| **Train** | `train2.tsv` | Used to train all factuality models. |
+| **Validation** | `val2.tsv` | Used for tuning and intermediate evaluation. |
+| **Test** | `test2.tsv` | Used for final evaluation and analysis. |
+
 ## Installation
 
 ### Clone the repository
@@ -79,17 +90,6 @@ If you encounter an OpenMP error on macOS when running XGBoost, ensure homebrew 
 ```bash
 brew install libomp
 ```
-
-## Dataset
-This project uses the LIAR-PLUS dataset, an extended version of the original LIAR dataset.
-This includes labeled political statements along with metadata such as subjects, speakers, party affiliations, and justifications.
-
-### Dataset Summary
-| Split | File | Description |
-|-------|------|--------------|
-| **Train** | `train2.tsv` | Used to train all factuality models. |
-| **Validation** | `val2.tsv` | Used for tuning and intermediate evaluation. |
-| **Test** | `test2.tsv` | Used for final evaluation and analysis. |
 
 ## Running the Pipeline
 Once the dataset and environment are set up, you can execute all four factuality models in sequence using the main script.
