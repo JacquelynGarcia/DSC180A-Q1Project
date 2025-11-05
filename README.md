@@ -42,7 +42,7 @@ This project relies on the [LIAR-PLUS dataset](https://www.kaggle.com/datasets/s
    - `train2.tsv`
    - `val2.tsv`
    - `test2.tsv`
-4. Place these files in a new folder named `data/` inside the project root:
+4. Place these files in a new folder named `data/` inside the project root.
 
 ### Create virtual environment
 ```bash
@@ -58,3 +58,28 @@ pip install -r requirements.txt
 ```
 
 You're ready to go!
+
+## Requirements
+To ensure this project is reproducible, this project uses the following Python libraries and versions:
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.5.2
+xgboost==2.1.1
+textblob==0.18.0
+scipy==1.14.1
+
+If you encounter an OpenMP error on macOS when running XGBoost, ensure homebrew is installed and install the OpenMP runtime:
+```bash
+brew install libomp
+```
+
+## Dataset
+This project uses the LIAR-PLUS dataset, an extended version of the original LIAR dataset.
+This includes labeled political statements along with metadata such as subjects, speakers, party affiliations, and justifications.
+
+### Dataset Summary
+| Split | File | Description |
+|-------|------|--------------|
+| **Train** | `train2.tsv` | Used to train all factuality models. |
+| **Validation** | `val2.tsv` | Used for tuning and intermediate evaluation. |
+| **Test** | `test2.tsv` | Used for final evaluation and analysis. |
