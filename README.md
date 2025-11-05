@@ -12,22 +12,6 @@ We use the LIAR-PLUS dataset to train separate models for:
 Each model captures a unique dimension of factuality, contributing to a broader framework for automated fact-checking.
 
 ## Repository Structure
-
-project-root/
-│
-├── src/
-│ ├── code.py
-│ ├── script.py
-│ └── config.json
-│
-├── data/
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
-
-### File Descriptions
-
 - src/ - Contains all source code for model building, configuration, and execution.  
 - code.py - Core logic for each factuality model, including training and prediction functions.  
 - script.py - The main entry point that loads the dataset, builds models, runs predictions, and outputs results.  
