@@ -17,6 +17,10 @@ Each model captures a unique dimension of factuality, contributing to a broader 
 - script.py - The main entry point that loads the dataset, builds models, runs predictions, and outputs results.  
 - config.json - Central configuration file specifying dataset paths and hyperparameters for each model.  
 
+- notebooks/ - Jupyter notebooks for exploratory data analysis and model evaluation.  
+- eda_visualization.ipynb - Exploratory Data Analysis of the training dataset; includes distribution plots, text patterns, and insight visualizations.  
+- ModelAccuracy.ipynb - Visualizations and metrics to compare each model's performance (accuracy, precision, recall, F1-score, etc.).  
+
 - data/ - Local folder containing the LIAR-PLUS dataset (`train2.tsv`, `val2.tsv`, `test2.tsv`).  
 *Note: this folder is excluded from GitHub via `.gitignore` for size and licensing reasons.*  
 
@@ -62,12 +66,14 @@ You're ready to go!
 ## Requirements
 To ensure this project is reproducible, this project uses the following Python libraries and versions:
 
+```lua
 pandas==2.2.3
 numpy==1.26.4
 scikit-learn==1.5.2
 xgboost==2.1.1
 textblob==0.18.0
 scipy==1.14.1
+```
 
 If you encounter an OpenMP error on macOS when running XGBoost, ensure homebrew is installed and install the OpenMP runtime:
 ```bash
@@ -95,7 +101,7 @@ From the project root directory, run:
 python src/script.py
 ```
 
-If properly installed, the example console input should be the following:
+If properly installed, the example console output should contain the following:
 ```lua
 Datasets loaded successfully.
 Frequency model complete.
@@ -103,3 +109,64 @@ Echo Chamber model complete.
 Sensationalism model complete.
 Credibility model complete.
 ```
+
+## Model Summaries
+Each model focuses on a different factuality factor within political statements, capturing linguistic, contextual, or behavioral patterns associated with truthfulness and bias.
+
+### Frequency Heuristic Model
+Goal: Detect linguistic cues that may indicate exaggeration or misinformation through overuse of buzzwords and repetition.  
+
+Features:
+- TF-IDF mean  
+- Average word frequency  
+- Buzzword count  
+- Repetition ratio  
+
+Model: `RandomForestClassifier`  
+Outputs:
+- `predicted_label`
+- `frequency_heuristic_score` - probability of label confidence  
+
+
+### Echo Chamber Model
+Goal: Measure how concentrated topics are across political affiliations, simulating the "echo chamber" effect seen in partisan speech.  
+
+Features:
+- TF-IDF embeddings of statements  
+- Subject length  
+- Party alignment ratio per topic  
+- Political relevance flag (`is_political`)  
+
+Model: `XGBClassifier`
+Outputs:
+- `predicted_echo_class`
+- `echo_chamber_score` - probability-based score of ideological clustering  
+
+### Sensationalism Model
+Goal: Identify emotional, exaggerated, or dramatic tones that make a statement "sensational."
+
+Features:
+- Exclamation count (`!`)  
+- Number of ALLCAPS words  
+- Sensational keywords
+- Sentiment polarity and subjectivity 
+- Metadata such as `speaker`, `party`, and `context`  
+
+Model: XGBoost within a `scikit-learn` Pipeline using `ColumnTransformer`  
+Outputs:
+- `predicted_sensationalism`
+- `sensationalism_score` - numeric probability for sensational tone  
+
+### Credibility Model
+Goal: Assess the trustworthiness of a statement based on speaker background, expertise, and tone.  
+
+Features:
+- TF-IDF representation of the statement text  
+- Speaker expertise level  
+- Political party encoding  
+- Subjectivity score 
+
+Model: XGBoost Pipeline  
+Outputs:
+- `predicted_credibility`
+- `credibility_score` - predicted probability of a credible statement  
