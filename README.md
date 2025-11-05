@@ -22,4 +22,11 @@ Each model captures a unique dimension of factuality, contributing to a broader 
 
 - requirements.txt - Lists all Python dependencies needed to reproduce the environment.  
 
-- .gitignore - Ensures unnecessary files (like `venv/`, cache directories, or data files) are not pushed to GitHub.
+- .gitignore - Ensures unnecessary files are not pushed to GitHub.
+
+## Installation
+
+### Clone the repository
+```bash
+git clone https://github.com/<your-username>/DSC180A-Q1Project.git
+cd DSC180A-Q1Project
