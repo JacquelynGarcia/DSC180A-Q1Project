@@ -18,7 +18,7 @@ Each model captures a unique dimension of factuality, contributing to a broader 
 - config.json - Central configuration file specifying dataset paths and hyperparameters for each model.  
 
 - data/ - Local folder containing the LIAR-PLUS dataset (`train2.tsv`, `val2.tsv`, `test2.tsv`).  
-*(Note: this folder is excluded from GitHub via `.gitignore` for size and licensing reasons.)*  
+*Note: this folder is excluded from GitHub via `.gitignore` for size and licensing reasons.*  
 
 - requirements.txt - Lists all Python dependencies needed to reproduce the environment.  
 
