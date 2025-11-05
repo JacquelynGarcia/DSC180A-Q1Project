@@ -299,3 +299,109 @@ def predict_sensationalism_model(df, pipeline, preprocessor, meta_features, nume
         "sensationalism_score": probs
     })
 
+# Credibility Model
+def build_credibility_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
+                            learning_rate=0.1, subsample=0.8, colsample_bytree=0.8,
+                            random_state=42):
+    credibility_map = {
+        "pants-fire": 0,
+        "false": 0,
+        "barely-true": 1,
+        "half-true": 1,
+        "mostly-true": 2,
+        "true": 2
+    }
+
+    for df in [df_train, df_val, df_test]:
+        df["credibility"] = df["label"].map(credibility_map)
+
+    for df in [df_train, df_val, df_test]:
+        df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
+
+    def encode_expertise(job):
+        job = str(job).lower()
+        if any(w in job for w in ["professor","scientist","researcher","doctor","expert"]):
+          return 4
+        elif any(w in job for w in ["senator","governor","mayor","politician","president"]):
+          return 3
+        elif any(w in job for w in ["journalist","reporter","editor"]):
+          return 2
+        elif any(w in job for w in ["actor","comedian","celebrity"]):
+          return 1
+        else:
+          return 0
+
+    for df in [df_train, df_val, df_test]:
+        df["expertise_level"] = df["job"].apply(encode_expertise)
+
+    le_party = LabelEncoder()
+    all_parties = pd.concat([df_train["party"], df_val["party"], df_test["party"]]).fillna("unknown")
+    le_party.fit(all_parties)
+    for df in [df_train, df_val, df_test]:
+        df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
+
+    text_col = "statement"
+    cat_features = ["party_encoded", "expertise_level"]
+    num_features = ["subjectivity"]
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("text", TfidfVectorizer(max_features=5000, stop_words="english"), text_col),
+            ("num", StandardScaler(), num_features),
+            ("cat", "passthrough", cat_features)
+        ],
+        remainder="drop"
+    )
+
+    model = XGBClassifier(
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        max_depth=max_depth,
+        subsample=subsample,
+        colsample_bytree=colsample_bytree,
+        eval_metric="mlogloss",
+        random_state=random_state
+    )
+
+    pipeline = Pipeline([
+        ("features", preprocessor),
+        ("clf", model)
+    ])
+
+    X_train = df_train[[text_col] + cat_features + num_features]
+    y_train = df_train["credibility"]
+
+    pipeline.fit(X_train, y_train)
+    return pipeline, le_party
+
+def predict_credibility_model(df, pipeline, le_party):
+    df = df.copy()
+
+    df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
+
+    def encode_expertise(job):
+        job = str(job).lower()
+        if any(w in job for w in ["professor","scientist","researcher","doctor","expert"]):
+            return 4
+        elif any(w in job for w in ["senator","governor","mayor","politician","president"]):
+            return 3
+        elif any(w in job for w in ["journalist","reporter","editor"]):
+            return 2
+        elif any(w in job for w in ["actor","comedian","celebrity"]):
+            return 1
+        else:
+            return 0
+    df["expertise_level"] = df["job"].apply(encode_expertise)
+    df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
+
+    X = df[["statement","party_encoded","expertise_level","subjectivity"]]
+    preds = pipeline.predict(X)
+    probs = pipeline.predict_proba(X).max(axis=1)
+
+    return pd.DataFrame({
+        "id": df["id"],
+        "statement": df["statement"],
+        "predicted_credibility": preds,
+        "credibility_score": probs
+    })
+

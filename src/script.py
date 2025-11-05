@@ -6,7 +6,9 @@ from code import (
     build_echo_chamber_model,
     predict_echo_chamber_model,
     build_sensationalism_model,
-    predict_sensationalism_model
+    predict_sensationalism_model,
+    build_credibility_model,
+    predict_credibility_model
 )
 
 def main():
@@ -41,5 +43,14 @@ def main():
     test_results_sens = predict_sensationalism_model(df_test, sens_pipeline, sens_preproc, sens_meta, sens_num)
     print("Sensationalism model complete.")
     print(val_results_sens.head())
+
+    cred_cfg = cfg["models"]["credibility"]
+    cred_pipeline, party_enc_cred = build_credibility_model(df_train, df_val, df_test, **cred_cfg)
+    val_results_cred = predict_credibility_model(df_val, cred_pipeline,party_enc_cred)
+    test_results_cred = predict_credibility_model(df_test, cred_pipeline,party_enc_cred)
+    print("Credibility model complete.")
+    print(val_results_cred.head())
+
+
 if __name__ == "__main__":
     main()
