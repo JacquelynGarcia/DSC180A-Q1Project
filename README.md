@@ -61,11 +61,17 @@ You're ready to go!
 
 ## Requirements
 To ensure this project is reproducible, this project uses the following Python libraries and versions:
+
 pandas==2.2.3
+
 numpy==1.26.4
+
 scikit-learn==1.5.2
+
 xgboost==2.1.1
+
 textblob==0.18.0
+
 scipy==1.14.1
 
 If you encounter an OpenMP error on macOS when running XGBoost, ensure homebrew is installed and install the OpenMP runtime:
