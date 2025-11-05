@@ -4,3 +4,13 @@ scikit-learn==1.5.2
 xgboost==2.1.1
 textblob==0.18.0
 scipy==1.14.1
+wordcloud>=1.9.2
+feedparser>=6.0.10
+sentence-transformers>=2.2.2
+newspaper3k>=0.2.8
+chromadb>=0.4.15
+beautifulsoup4>=4.12.2
+requests>=2.31.0
+spacy>=3.7.2
+matplotlib>=3.7.2
+seaborn>=0.12.2
