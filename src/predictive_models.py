@@ -14,6 +14,18 @@ from textblob import TextBlob
 
 # Load in full LiarPLUS datasets
 def load_datasets(train_path, val_path, test_path):
+    """
+    Load and preprocess the LIAR-PLUS datasets (training, validation, and test sets).
+
+    Args:
+        train_path: Path to training data TSV file
+        val_path: Path to validation data TSV file  
+        test_path: Path to test data TSV file
+        
+    Returns:
+        tuple: (df_train, df_val, df_test) - preprocessed DataFrames
+    """
+    # Define column names for the LIAR-PLUS dataset
     cols = [
     "index", "id", "label", "statement", "subject", "speaker", "job", "state",
     "party", "barely_true", "false", "half_true", "mostly_true", "pants_on_fire",
@@ -22,38 +34,65 @@ def load_datasets(train_path, val_path, test_path):
 
     dfs = []
 
+    # Process each dataset file
     for path in [train_path, val_path, test_path]:
+        # Load TSV file without header
         df = pd.read_csv(path, sep="\t", header=None)
         df.columns = cols
+        
+        # Remove unnecessary index column
         df = df.drop(columns=["index"])
+        
+        # Clean ID field by removing .json extension
         df["id"] = df["id"].str.replace(".json", "", regex=False)
+        
+        # Strip whitespace from all text columns
         for col in df.select_dtypes(include=["object"]).columns:
             df[col] = df[col].str.strip()
+            
+        # Reset index for clean indexing
         df.reset_index(drop=True, inplace=True)
         dfs.append(df)
 
     return dfs
 
 def build_frequency_model(df_train, n_estimators=200, random_state=42):
+    """
+    Build a frequency-based fake news detection model. Analyzes TF-IDF word importance scores, 
+    average word frequency in the corpus, presence of buzzwords, and text repetition patterns.
+
+    Args:
+        df_train: Training dataset
+        n_estimators: Number of trees in RandomForest
+        random_state: Random seed for reproducibility
+        
+    Returns:
+        tuple: (model, tfidf_vectorizer, count_vectorizer, token_dict, buzzwords, label_encoder)
+    """
     tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
     tfidf_matrix_train = tfidf.fit_transform(df_train['statement'])
 
+    # Create count vectorizer for frequency analysis
     count_vec = CountVectorizer(stop_words='english')
     count_matrix_train = count_vec.fit_transform(df_train['statement'])
     token_freq = np.asarray(count_matrix_train.sum(axis=0)).ravel()
     token_dict = {w: token_freq[i] for i, w in enumerate(count_vec.get_feature_names_out())}
 
+    # Define buzzwords
     buzzwords = {'always','never','everyone','nobody','millions','billions','every',
                  'no one','thousands','people say','experts agree'}
 
     def avg_word_freq(text):
+        """Calculate average word frequency for words in the text."""
         words = [w for w in text.lower().split() if w in token_dict]
         return np.mean([token_dict[w] for w in words]) if words else 0
 
     def buzzword_score(text):
+        """Count the number of buzzwords in the text."""
         return sum(b in text.lower() for b in buzzwords)
 
     def repetition_score(text):
+        """Calculate text repetition as 1 - (unique_words / total_words)."""
         tokens = text.lower().split()
         return 1 - len(set(tokens)) / len(tokens) if tokens else 0
 
@@ -77,14 +116,33 @@ def build_frequency_model(df_train, n_estimators=200, random_state=42):
 
 # Freqency Heuristic Model
 def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, le):
+    """
+    Make predictions using the frequency heuristic model.
+    
+    Args:
+        df: Data to predict on
+        model: Trained frequency model
+        tfidf: Fitted TF-IDF vectorizer
+        count_vec: Fitted count vectorizer
+        token_dict: Word frequency dictionary
+        buzzwords: Set of buzzwords to detect
+        le: Fitted label encoder
+        
+    Returns:
+        Predictions with ID, statement, predicted label, and confidence score
+    """
+    # Define the same feature extraction functions used in training
     def avg_word_freq(text):
+        """Calculate average word frequency for words in the text."""
         words = [w for w in text.lower().split() if w in token_dict]
         return np.mean([token_dict[w] for w in words]) if words else 0
 
     def buzzword_score(text):
+        """Count the number of buzzwords in the text."""
         return sum(b in text.lower() for b in buzzwords)
 
     def repetition_score(text):
+        """Calculate text repetition as 1 - (unique_words / total_words)."""
         tokens = text.lower().split()
         return 1 - len(set(tokens)) / len(tokens) if tokens else 0
 
@@ -96,6 +154,7 @@ def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, 
         "repetition_score": df['statement'].apply(repetition_score)
     }).fillna(0)
 
+    # Make predictions
     preds = model.predict(X)
     probs = model.predict_proba(X).max(axis=1)
 
@@ -109,8 +168,25 @@ def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, 
 # Echo Chamber Model
 def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_rate=0.1,
                              subsample=0.8, colsample_bytree=0.8, random_state=42):
+    """
+    Build an echo chamber detection model. Identifies political bias by analyzing party 
+    concentration, political content indicators, and text features.
+
+    Args:
+        df_train: Training dataset
+        n_estimators: Number of XGBoost trees
+        max_depth: Maximum tree depth
+        learning_rate: XGBoost learning rate
+        subsample: Subsample ratio of training instances
+        colsample_bytree: Subsample ratio of features
+        random_state: Random seed
+        
+    Returns:
+        tuple: (model, vectorizer, label_encoder, concentration_map)
+    """
     topic_party_counts = (df_train.groupby(["subject", "party"]).size().unstack(fill_value=0))
 
+    # Calculate party concentration for each topic 
     topic_party_counts["party_concentration"] = (topic_party_counts.max(axis=1) / topic_party_counts.sum(axis=1))
 
     concentration_map = topic_party_counts["party_concentration"].to_dict()
@@ -118,6 +194,7 @@ def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_r
     df_train["echo_chamber"] = df_train["subject"].map(concentration_map)
 
     def categorize_echo(value):
+        """Convert concentration to categorical classes."""
         if value <= 0.4:
             return 0
         elif value <= 0.6:
@@ -129,6 +206,7 @@ def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_r
 
     df_train["echo_chamber_4class"] = df_train["echo_chamber"].apply(categorize_echo)
 
+    # Balance classes using upsampling
     dfs = []
     max_size = df_train["echo_chamber_4class"].value_counts().max()
     for cls in df_train["echo_chamber_4class"].unique():
@@ -138,7 +216,9 @@ def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_r
     df_train_bal = pd.concat(dfs).sample(frac=1, random_state=42).reset_index(drop=True)
 
     df_train_bal["subject_length"] = df_train_bal["subject"].apply(lambda x: len(str(x).split(",")))
-    df_train_bal["is_political"] = df_train_bal["subject"].apply(lambda x: int("politics" in str(x).lower() or "election" in str(x).lower()))
+    df_train_bal["is_political"] = df_train_bal["subject"].apply(
+        lambda x: int("politics" in str(x).lower() or "election" in str(x).lower())
+    )
 
     le = LabelEncoder()
     df_train_bal["party_encoded"] = le.fit_transform(df_train_bal["party"].fillna("none"))
@@ -146,7 +226,10 @@ def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_r
     vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
     X_train_tfidf = vectorizer.fit_transform(df_train_bal["statement"])
 
-    X_train_full = hstack([X_train_tfidf, df_train_bal[["subject_length", "is_political", "party_encoded"]].values,])
+    X_train_full = hstack([
+        X_train_tfidf, 
+        df_train_bal[["subject_length", "is_political", "party_encoded"]].values
+    ])
 
     y_train = df_train_bal["echo_chamber_4class"]
 
@@ -165,10 +248,24 @@ def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_r
     return model, vectorizer, le, concentration_map
 
 def predict_echo_chamber_model(df, model, vectorizer, le, concentration_map):
+    """
+    Make predictions using the echo chamber model.
+    
+    Args:
+        df: Data to predict on
+        model: Trained echo chamber model
+        vectorizer: Fitted TF-IDF vectorizer
+        le: Fitted label encoder for parties
+        concentration_map: Topic to concentration mapping
+        
+    Returns:
+        pd.DataFrame: Predictions with echo chamber class and confidence score
+    """
     df = df.copy()
     df["echo_chamber"] = df["subject"].map(concentration_map)
 
     def categorize_echo(value):
+        """Convert continuous concentration to categorical classes."""
         if value <= 0.4:
             return 0
         elif value <= 0.6:
@@ -187,6 +284,7 @@ def predict_echo_chamber_model(df, model, vectorizer, le, concentration_map):
     X_tfidf = vectorizer.transform(df["statement"])
     X_full = hstack([X_tfidf, df[["subject_length", "is_political", "party_encoded"]].values])
 
+    # Make predictions
     preds = model.predict(X_full)
     probs = model.predict_proba(X_full).max(axis=1)
 
@@ -202,7 +300,27 @@ def predict_echo_chamber_model(df, model, vectorizer, le, concentration_map):
 # Sensationalism Model
 def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
                                learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, random_state=42):
+    """
+    Build a sensationalism detection model. Identifies sensationalism by analyzing text
+    features, sentiment analysis, and metadata features
+
+    Args:
+        df_train, df_val, df_test: Train/validation/test datasets
+        n_estimators: Number of XGBoost trees
+        max_depth: Maximum tree depth
+        learning_rate: XGBoost learning rate
+        subsample: Subsample ratio of training instances
+        colsample_bytree: Subsample ratio of features
+        random_state: Random seed
+        
+    Returns:
+        tuple: (pipeline, preprocessor, meta_features_list, numeric_features_list)
+    """
     def map_sensationalism_from_counts(row):
+        """
+        Map LiarPLUS rating counts to sensationalism levels. Higher sensationalism 
+        score = more extreme/false ratings.
+        """
         total = row["barely_true"] + row["false"] + row["half_true"] + row["mostly_true"] + row["pants_on_fire"]
         if total == 0:
             return 1
@@ -211,14 +329,14 @@ def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_
             3 * row["false"] +
             1 * row["half_true"] +
             0.5 * row["mostly_true"] +
-            4 * row["pants_on_fire"]
+            4 * row["pants_on_fire"] 
         ) / total
         if score < 1.5:
-            return 0
+            return 0  # Low sensationalism
         elif score < 2.5:
-            return 1
+            return 1  # Moderate sensationalism
         else:
-            return 2
+            return 2  # High sensationalism
 
     for df in [df_train, df_val, df_test]:
         df["sensationalism"] = df.apply(map_sensationalism_from_counts, axis=1)
@@ -271,6 +389,19 @@ def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_
     return pipeline, preprocessor, meta_features, numeric_features
 
 def predict_sensationalism_model(df, pipeline, preprocessor, meta_features, numeric_features):
+    """
+    Make predictions using the sensationalism model.
+    
+    Args:
+        df: Data to predict on
+        pipeline: Trained sensationalism pipeline
+        preprocessor: Fitted preprocessor 
+        meta_features: List of metadata feature names
+        numeric_features: List of numeric feature names
+        
+    Returns:
+        Predictions with sensationalism level and confidence score
+    """
     df = df.copy()
 
     def extract_text_features(text):
@@ -289,6 +420,8 @@ def predict_sensationalism_model(df, pipeline, preprocessor, meta_features, nume
     df[["exclaim","allcaps","sens_words","polarity","subjectivity"]] = pd.DataFrame(feats.tolist(), index=df.index)
 
     X = df[["statement"] + meta_features + numeric_features]
+    
+    # Make predictions
     preds = pipeline.predict(X)
     probs = pipeline.predict_proba(X).max(axis=1)
 
@@ -303,33 +436,56 @@ def predict_sensationalism_model(df, pipeline, preprocessor, meta_features, nume
 def build_credibility_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
                             learning_rate=0.1, subsample=0.8, colsample_bytree=0.8,
                             random_state=42):
+    """
+    Build a credibility assessment model by analyzing expertise levels, subjectivity, 
+    political party affiliations, and text.
+    
+    Args:
+        df_train, df_val, df_test: Train/validation/test datasets
+        n_estimators: Number of XGBoost trees
+        max_depth: Maximum tree depth
+        learning_rate: XGBoost learning rate
+        subsample: Subsample ratio of training instances
+        colsample_bytree: Subsample ratio of features
+        random_state: Random seed
+        
+    Returns:
+        tuple: (pipeline, label_encoder_party)
+    """
+    # Map LiarPLUS labels to credibility levels
     credibility_map = {
-        "pants-fire": 0,
-        "false": 0,
-        "barely-true": 1,
-        "half-true": 1,
-        "mostly-true": 2,
-        "true": 2
+        "pants-fire": 0,    # Low credibility
+        "false": 0,         # Low credibility
+        "barely-true": 1,   # Medium credibility
+        "half-true": 1,     # Medium credibility
+        "mostly-true": 2,   # High credibility
+        "true": 2           # High credibility
     }
 
     for df in [df_train, df_val, df_test]:
         df["credibility"] = df["label"].map(credibility_map)
 
+    # Extract subjectivity as a credibility indicator
+    # More subjective content may be less credible
     for df in [df_train, df_val, df_test]:
         df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
 
     def encode_expertise(job):
+        """
+        Encode job titles into expertise levels.
+        Higher levels indicate more credible sources.
+        """
         job = str(job).lower()
         if any(w in job for w in ["professor","scientist","researcher","doctor","expert"]):
-          return 4
+          return 4  # Highest expertise
         elif any(w in job for w in ["senator","governor","mayor","politician","president"]):
-          return 3
+          return 3  # High expertise
         elif any(w in job for w in ["journalist","reporter","editor"]):
-          return 2
+          return 2  # Medium expertise 
         elif any(w in job for w in ["actor","comedian","celebrity"]):
-          return 1
+          return 1  # Low expertise 
         else:
-          return 0
+          return 0  # Unknown
 
     for df in [df_train, df_val, df_test]:
         df["expertise_level"] = df["job"].apply(encode_expertise)
@@ -341,8 +497,8 @@ def build_credibility_model(df_train, df_val, df_test, n_estimators=300, max_dep
         df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
 
     text_col = "statement"
-    cat_features = ["party_encoded", "expertise_level"]
-    num_features = ["subjectivity"]
+    cat_features = ["party_encoded", "expertise_level"]  
+    num_features = ["subjectivity"]  
 
     preprocessor = ColumnTransformer(
         transformers=[
@@ -375,6 +531,17 @@ def build_credibility_model(df_train, df_val, df_test, n_estimators=300, max_dep
     return pipeline, le_party
 
 def predict_credibility_model(df, pipeline, le_party):
+    """
+    Make predictions using the credibility model.
+    
+    Args:
+        df: Data to predict on
+        pipeline: Trained credibility pipeline
+        le_party: Fitted label encoder for political parties
+        
+    Returns:
+        Predictions with credibility level and confidence score
+    """
     df = df.copy()
 
     df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
@@ -395,6 +562,8 @@ def predict_credibility_model(df, pipeline, le_party):
     df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
 
     X = df[["statement","party_encoded","expertise_level","subjectivity"]]
+    
+    # Make predictions
     preds = pipeline.predict(X)
     probs = pipeline.predict_proba(X).max(axis=1)
 
