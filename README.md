@@ -13,7 +13,7 @@ Each model captures a unique dimension of factuality, contributing to a broader 
 
 ## Repository Structure
 - src/ - Contains all source code for model building, configuration, and execution.
-- article.py - 
+- article.py - Contains main ingestion for articles.
 - predictive_models.py - Core logic for each factuality model, including training and prediction functions.  
 - script.py - The main entry point that loads the dataset, builds models, runs predictions, and outputs results.  
 - config.json - Central configuration file specifying dataset paths and hyperparameters for each model.  
