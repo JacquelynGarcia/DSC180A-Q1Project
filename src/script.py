@@ -24,7 +24,7 @@ def main():
 
     freq_cfg = cfg["models"]["frequency"]
     model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq = build_frequency_model(df_train, **freq_cfg)
-    print("Frequency Heuristicmodel trained.")
+    print("Frequency Heuristic model trained.")
 
     echo_cfg = cfg["models"]["echo_chamber"]
     model_echo, vectorizer_echo, le_echo, concentration_map = build_echo_chamber_model(df_train, **echo_cfg)
