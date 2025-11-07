@@ -103,7 +103,7 @@ python src/script.py
 ```
 
 If properly installed, the example console output should contain the following:
-```lua
+```
 Datasets loaded successfully.
 Frequency model trained.
 Echo Chamber model trained.
