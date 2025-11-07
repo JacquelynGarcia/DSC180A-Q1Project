@@ -99,7 +99,7 @@ Once the dataset and environment are set up, you can execute all four factuality
 From the project root directory, run:
 
 ```bash
-python src/predictive_models.py
+python src/script.py
 ```
 
 If properly installed, the example console output should contain the following:
