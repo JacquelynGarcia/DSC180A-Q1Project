@@ -93,9 +93,14 @@ brew install libomp
 ```
 
 ### Testing Custom Articles
-This project supports automated article ingestion and analysis directly from live URLs.
+This project supports automated article ingestion and analysis directly from live URLs. This feature allows uses to analyze any **publicly accessible** article using all four trained factuality models.
 
 #### Example Usage
+To test a custom article, simply update the url inside `src/script.py`:
+```bash
+print("\nAnalyzing article...")
+url = "https://www.cnn.com/2025/10/20/politics/trump-no-kings-protests-vance-cia-analysis"
+```
 
 ## Running the Pipeline
 Once the dataset and environment are set up, you can execute all four factuality models in sequence using the main script.
