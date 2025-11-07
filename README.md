@@ -92,6 +92,8 @@ If you encounter an OpenMP error on macOS when running XGBoost, ensure homebrew 
 brew install libomp
 ```
 
+### Testing Custom Articles
+
 ## Running the Pipeline
 Once the dataset and environment are set up, you can execute all four factuality models in sequence using the main script.
 
