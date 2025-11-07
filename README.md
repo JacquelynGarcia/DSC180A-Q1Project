@@ -93,6 +93,9 @@ brew install libomp
 ```
 
 ### Testing Custom Articles
+This project supports automated article ingestion and analysis directly from live URLs.
+
+#### Example Usage
 
 ## Running the Pipeline
 Once the dataset and environment are set up, you can execute all four factuality models in sequence using the main script.
