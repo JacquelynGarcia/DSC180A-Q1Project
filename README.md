@@ -105,7 +105,7 @@ python src/script.py
 If properly installed, the example console output should contain the following:
 ```
 Datasets loaded successfully.
-Frequency model trained.
+Frequency Heuristic model trained.
 Echo Chamber model trained.
 Sensationalism model trained.
 Credibility model trained.
@@ -117,7 +117,7 @@ URL: https://www.cnn.com/2025/10/20/politics/trump-no-kings-protests-vance-cia-a
 Title: AI sewage video: Trump’s response to ‘No Kings’ marches only proved the protesters’ point
 Source: www.cnn.com
 Predicted Label: mostly-true
-Frequency Score: 0.355
+Frequency Heuristic Score: 0.355
 Echo Chamber Class: 3
 Echo Chamber Score: 0.603
 Sensationalism Level: 0
