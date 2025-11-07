@@ -105,10 +105,25 @@ python src/script.py
 If properly installed, the example console output should contain the following:
 ```lua
 Datasets loaded successfully.
-Frequency model complete.
-Echo Chamber model complete.
-Sensationalism model complete.
-Credibility model complete.
+Frequency model trained.
+Echo Chamber model trained.
+Sensationalism model trained.
+Credibility model trained.
+
+Analyzing article...
+
+Article Analysis Results:
+URL: https://www.cnn.com/2025/10/20/politics/trump-no-kings-protests-vance-cia-analysis
+Title: AI sewage video: Trump’s response to ‘No Kings’ marches only proved the protesters’ point
+Source: www.cnn.com
+Predicted Label: mostly-true
+Frequency Score: 0.355
+Echo Chamber Class: 3
+Echo Chamber Score: 0.603
+Sensationalism Level: 0
+Sensationalism Score: 0.797
+Credibility Level: 1
+Credibility Score: 0.851
 ```
 
 ## Model Summaries
