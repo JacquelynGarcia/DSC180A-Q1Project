@@ -66,7 +66,7 @@ def main():
     print(f"Title: {article_analysis['title']}")
     print(f"Source: {article_analysis['source']}")
     print(f"Predicted Label: {article_analysis['predicted_label']}")
-    print(f"Frequency Score: {article_analysis['frequency_heuristic_score']:.3f}")
+    print(f"Frequency Heuristic Score: {article_analysis['frequency_heuristic_score']:.3f}")
     print(f"Echo Chamber Class: {article_analysis['predicted_echo_class']}")
     print(f"Echo Chamber Score: {article_analysis['echo_chamber_score']:.3f}")
     print(f"Sensationalism Level: {article_analysis['predicted_sensationalism']}")
