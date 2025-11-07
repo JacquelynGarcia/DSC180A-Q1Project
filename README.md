@@ -124,7 +124,7 @@ Analyzing article...
 
 Article Analysis Results:
 URL: https://www.cnn.com/2025/10/20/politics/trump-no-kings-protests-vance-cia-analysis
-Title: AI sewage video: Trump’s response to ‘No Kings’ marches only proved the protesters’ point
+Title: AI sewage video: Trump's response to 'No Kings' marches only proved the protesters' point
 Source: www.cnn.com
 Predicted Label: mostly-true
 Frequency Heuristic Score: 0.355
