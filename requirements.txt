@@ -16,7 +16,6 @@ spacy==3.7.2
 matplotlib==3.7.2
 seaborn==0.12.2
 lxml_html_clean==0.1.0
-google
 google-genai
 python-dotenv
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz
