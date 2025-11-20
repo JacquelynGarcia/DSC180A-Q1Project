@@ -124,12 +124,12 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    resultDiv.innerHTML = "❌ Error: " + data.error;
+                    resultDiv.innerHTML = "Error: " + data.error;
                 } else {
                     resultDiv.innerHTML = "Factuality Score: " + data.score;
                 }
             } catch (err) {
-                resultDiv.innerHTML = "❌ Network error or server issue.";
+                resultDiv.innerHTML = "Network error or server issue.";
             }
 
             spinner.style.display = "none";
