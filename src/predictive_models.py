@@ -12,7 +12,7 @@ from sklearn.utils import resample
 from textblob import TextBlob
 
 
-# Load in full LiarPLUS datasets
+# Load in full datasets
 def load_datasets(train_path, val_path, test_path):
     """
     Load merged LiarPLUS/Politifact datasets (train, validation, test).
