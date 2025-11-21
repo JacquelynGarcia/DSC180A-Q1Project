@@ -81,13 +81,6 @@ def predict_job(text, job_clf, job_le):
     return pred_label
 
 
-def train_models(df_train):
-    """
-    Train job classifier
-    """
-    job_clf, job_le = train_job_model(df_train)
-    return (job_clf, job_le)
-
 def prepare_article_for_models(article, job_clf, job_le):
     """
     Convert article data into the format expected by the trained frequency, echo chamber,
