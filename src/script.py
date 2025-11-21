@@ -44,7 +44,7 @@ def main():
 
     # Use trained models to predict scores for new articles
     print("\nAnalyzing article...")
-    # article_url = "https://www.cnn.com/2025/10/20/politics/trump-no-kings-protests-vance-cia-analysis"  
+    
     article_text = """
     Trump’s response to ‘No Kings’ marches only proved the protesters’ point
     Analysis by
