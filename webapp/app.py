@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import os
 from google import genai
+import json
 
 load_dotenv()
 
@@ -18,6 +19,9 @@ def factuality_score(article_text):
     """
 
     prompt = f"""
+    RETURN ONLY VALID JSON. DO NOT USE MARKDOWN. DO NOT USE ```json OR ANY CODE FENCES.
+    OUTPUT ONLY A JSON OBJECT.
+
     You are an expert in misinformation and disinformation detection, scoring, and ranking. Your task is to analyze the given article and 
     score how strongly it exhibits each factuality factor. 
     ---
@@ -124,7 +128,7 @@ def factuality_score(article_text):
     2. Identify linguistic cues that signal bias, repetition, exaggeration, or malicious intent. 
     3. Use your factuality factor analysis and the tool outputs to provide a numeric score, a justification for why that score was chosen, and your confidence
     level in that assessment on a scale of 0-100%. If your score is different than the predictive model score, you must explain why you disagree. 
-    4. Return **only** a valid JSON object containing the score, reasoning, and confidence level for each of the four factors. 
+    4. RETURN ONLY VALID JSON. DO NOT USE MARKDOWN. DO NOT USE ```json OR ANY CODE FENCES. OUTPUT ONLY A JSON OBJECT.
 
     ### Output Format: {{ "frequency_heuristic": {{ "score": 0|1|2, "reasoning": "Explanation", "confidence": 0-100 }}, "malicious_account": {{ "score": 0|1|2, "reasoning": "Explanation", "confidence": 0-100 }}, "sensationalism": {{ "score": 0|1|2, "reasoning": "Explanation", "confidence": 0-100 }}, "naive_realism": {{ "score": 0|1|2, "reasoning": "Explanation", "confidence": 0-100 }} }}
     """
@@ -136,11 +140,9 @@ def factuality_score(article_text):
 
     return response.text.strip()
 
-
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 @app.route("/score", methods=["POST"])
 def score():
@@ -150,11 +152,28 @@ def score():
         return jsonify({"error": "No article text provided"}), 400
 
     try:
-        score = factuality_score(article_text)
-        return jsonify({"score": score})
+        raw_output = factuality_score(article_text)
+
+        try:
+            clean = raw_output.strip()
+
+            start = clean.find("{")
+            end = clean.rfind("}")
+
+            if start == -1 or end == -1:
+                return jsonify({"error": "Model returned no JSON", "raw": raw_output}), 500
+
+            json_str = clean[start:end+1]
+
+            parsed = json.loads(json_str)
+
+        except Exception:
+            return jsonify({"error": "Model returned invalid JSON", "raw": raw_output}), 500
+
+        return jsonify(parsed)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(debug=True)
