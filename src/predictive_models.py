@@ -104,69 +104,49 @@ def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, 
 
 
 # Sensationalism Model
-def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
-                               learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, random_state=42):
-    """
-    Build a sensationalism detection model. Identifies sensationalism by analyzing text
-    features, sentiment analysis, and metadata features
-    """
-    def map_sensationalism_from_counts(row):
-        """
-        Map LiarPLUS rating counts to sensationalism levels. Higher sensationalism 
-        score = more extreme/false ratings.
-        """
-        total = row["barely_true"] + row["false"] + row["half_true"] + row["mostly_true"] + row["pants_on_fire"]
-        if total == 0:
-            return 1
-        score = (
-            2 * row["barely_true"] +
-            3 * row["false"] +
-            1 * row["half_true"] +
-            0.5 * row["mostly_true"] +
-            4 * row["pants_on_fire"] 
-        ) / total
-        if score < 1.5:
-            return 0  # Low sensationalism
-        elif score < 2.5:
-            return 1  # Moderate sensationalism
-        else:
-            return 2  # High sensationalism
+def map_sensationalism_from_counts(row):
+    total = row["barely_true"] + row["false"] + row["half_true"] + row["mostly_true"] + row["pants_on_fire"]
+    if total == 0:
+        return 1
+    score = (
+        2 * row["barely_true"] +
+        3 * row["false"] +
+        1 * row["half_true"] +
+        0.5 * row["mostly_true"] +
+        4 * row["pants_on_fire"]
+    ) / total
+    if score < 1.5:
+        return 0
+    elif score < 2.5:
+        return 1
+    else:
+        return 2
+
+def build_sensationalism_model(df_train):
 
     for df in [df_train, df_val, df_test]:
         df["sensationalism"] = df.apply(map_sensationalism_from_counts, axis=1)
 
-    def extract_text_features(text):
-        text = str(text)
-        exclaim = text.count("!")
-        allcaps = len(re.findall(r"\b[A-Z]{2,}\b", text))
-        sens_words = sum(1 for w in [
-            "shocking","unbelievable","incredible","amazing","outrageous",
-            "disaster","terrifying","massive","horrifying","explosive",
-            "record-breaking","unprecedented","urgent","worst","best"
-        ] if w in text.lower())
-        blob = TextBlob(text)
-        return exclaim, allcaps, sens_words, abs(blob.sentiment.polarity), blob.sentiment.subjectivity
 
     feats = df_train["statement"].apply(extract_text_features)
     df_train[["exclaim","allcaps","sens_words","polarity","subjectivity"]] = pd.DataFrame(feats.tolist(), index=df_train.index)
 
     text_col = "statement"
-    meta_features = ["speaker", "context", "job"]
     numeric_features = ["exclaim", "allcaps", "sens_words", "polarity", "subjectivity"]
 
     preprocessor = ColumnTransformer([
         ("text", TfidfVectorizer(max_features=5000, stop_words="english"), text_col),
-        ("cat", OneHotEncoder(handle_unknown="ignore"), meta_features),
         ("num", StandardScaler(), numeric_features)
     ])
 
     model = XGBClassifier(
-        n_estimators=n_estimators,
-        learning_rate=learning_rate,
-        max_depth=max_depth,
-        subsample=subsample,
-        colsample_bytree=colsample_bytree,
-        random_state=random_state,
+        num_class=3,
+        n_estimators=300,
+        learning_rate=0.1,
+        max_depth=6,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
         eval_metric="mlogloss"
     )
 
@@ -175,37 +155,20 @@ def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_
         ("model", model)
     ])
 
-    X_train = df_train[[text_col] + meta_features + numeric_features]
+    X_train = df_train[[text_col] + numeric_features]
     y_train = df_train["sensationalism"]
 
     pipeline.fit(X_train, y_train)
 
-    return pipeline, meta_features, numeric_features
+    return pipeline, numeric_features
 
-def predict_sensationalism_model(df, pipeline, meta_features, numeric_features):
-    """
-    Make predictions using the sensationalism model.
-    """
+def predict_sensationalism_model(df, pipeline, numeric_features):
     df = df.copy()
-
-    def extract_text_features(text):
-        text = str(text)
-        exclaim = text.count("!")
-        allcaps = len(re.findall(r"\b[A-Z]{2,}\b", text))
-        sens_words = sum(1 for w in [
-            "shocking","unbelievable","incredible","amazing","outrageous",
-            "disaster","terrifying","massive","horrifying","explosive",
-            "record-breaking","unprecedented","urgent","worst","best"
-        ] if w in text.lower())
-        blob = TextBlob(text)
-        return exclaim, allcaps, sens_words, abs(blob.sentiment.polarity), blob.sentiment.subjectivity
 
     feats = df["statement"].apply(extract_text_features)
     df[["exclaim","allcaps","sens_words","polarity","subjectivity"]] = pd.DataFrame(feats.tolist(), index=df.index)
 
-    X = df[["statement"] + meta_features + numeric_features]
-    
-    # Make predictions
+    X = df[["statement"] + numeric_features]
     preds = pipeline.predict(X)
     probs = pipeline.predict_proba(X).max(axis=1)
 
@@ -215,6 +178,19 @@ def predict_sensationalism_model(df, pipeline, meta_features, numeric_features):
         "predicted_sensationalism": preds,
         "sensationalism_score": probs
     })
+
+
+def extract_text_features(text):
+    text = str(text)
+    exclaim = text.count("!")
+    allcaps = len(re.findall(r"\b[A-Z]{2,}\b", text))
+    sens_words = sum(1 for w in [
+        "shocking","unbelievable","incredible","amazing","outrageous",
+        "disaster","terrifying","massive","horrifying","explosive",
+        "record-breaking","unprecedented","urgent","worst","best"
+    ] if w in text.lower())
+    blob = TextBlob(text)
+    return exclaim, allcaps, sens_words, abs(blob.sentiment.polarity), blob.sentiment.subjectivity
 
 
 # Malicious Account

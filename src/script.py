@@ -25,23 +25,21 @@ def main():
     print("Datasets loaded successfully.")
 
     freq_cfg = cfg["models"]["frequency"]
-    model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq = build_frequency_model(df_train, **freq_cfg)
+    freq_model = build_frequency_model(df_train, **freq_cfg)
     print("Frequency Heuristic model trained.")
 
     sens_cfg = cfg["models"]["sensationalism"]
-    sens_pipeline, sens_meta, sens_num = build_sensationalism_model(
+    sens_model = build_sensationalism_model(
         df_train, df_val, df_test,**sens_cfg)
     print("Sensationalism model trained.")
 
-    job_clf, job_le = train_job_model(df_train)
+    # job_clf, job_le = train_job_model(df_train)
 
-    freq_model = (model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq)
-    sens_model = (sens_pipeline, sens_meta, sens_num)
-    job_party_model = (job_clf, job_le)
+    # job_party_model = (job_clf, job_le)
 
     # Use trained models to predict scores for new articles
     print("\nAnalyzing article...")
-    url = "https://www.cnn.com/2025/10/20/politics/trump-no-kings-protests-vance-cia-analysis"  
+    article_text = "https://www.cnn.com/2025/10/20/politics/trump-no-kings-protests-vance-cia-analysis"  
     
 
     article_analysis = evaluate_article(
