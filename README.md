@@ -24,9 +24,9 @@ DSC180A-Q1Project/
 │
 ├── notebooks/
 │   ├── eda_visualization.ipynb       # Exploratory visualizations for LIAR-PLUS dataset
-│   ├── model_accuracy.ipynb
-│   ├── prompting.ipynb
-│   ├── scraped_data.ipynb
+│   ├── model_accuracy.ipynb          # Various accuracy scores for baseline models
+│   ├── prompting.ipynb               # Contains 20 incremental prompts refining the model and ending with function calling
+│   ├── scraped_data.ipynb            # Additonal scraped data from outside sources
 │   └── hand_labels_template.csv
 │
 ├── research/                         # Final capstone research report
@@ -49,7 +49,7 @@ DSC180A-Q1Project/
 │
 ├── .gitignore
 ├── README.md
-└── requirements.txt
+└── requirements.txt                  # Requirements for environment
 ```
 
 ## Dataset
