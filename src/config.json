@@ -4,29 +4,28 @@
       "n_estimators": 200,
       "random_state": 42
     },
-    "echo_chamber": {
-      "n_estimators": 300,
-      "max_depth": 6,
-      "learning_rate": 0.1,
-      "subsample": 0.8,
-      "colsample_bytree": 0.8,
-      "random_state": 42
-    },
     "sensationalism": {
       "n_estimators": 300,
       "max_depth": 6,
+      "eval_metric": "mlogloss",
       "learning_rate": 0.1,
       "subsample": 0.8,
       "colsample_bytree": 0.8,
       "random_state": 42
     },
-    "credibility": {
+    "malicious_account": {
+      "n_estimators": 200,
+      "random_state": 42
+
+    },
+    "naive_realism": {
       "n_estimators": 300,
-      "max_depth": 6,
       "learning_rate": 0.1,
+      "max_depth": 6,
       "subsample": 0.8,
       "colsample_bytree": 0.8,
-      "random_state": 42
+      "eval_metric": "mlogloss", 
+      "random_state":42
     }
   }
 }

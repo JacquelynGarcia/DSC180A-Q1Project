@@ -22,7 +22,7 @@ def load_datasets(train_path, val_path, test_path):
     return train_df, val_df, test_df
 
 # Frequency Heuristic Model
-def build_frequency_model(df_train):
+def build_frequency_model(df_train,n_estimators=200, random_state=42):
     tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
     tfidf_matrix_train = tfidf.fit_transform(df_train['statement'])
 
@@ -55,7 +55,7 @@ def build_frequency_model(df_train):
     le = LabelEncoder()
     y_train = le.fit_transform(df_train['label'])
 
-    model = Pipeline([("scaler", StandardScaler()), ("clf", RandomForestClassifier(n_estimators=200, random_state=42))])
+    model = Pipeline([("scaler", StandardScaler()), ("clf", RandomForestClassifier(n_estimators=n_estimators, random_state=random_state))])
     model.fit(X_train, y_train)
 
     return model, tfidf, count_vec, token_dict, buzzwords, le
@@ -96,7 +96,6 @@ def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, 
     freq_scores = [label_to_score.get(lbl, 1) for lbl in pred_labels]
 
     return pd.DataFrame({
-        "id": df["id"],
         "statement": df["statement"],
         "predicted_frequency_heuristic": freq_scores,
         "frequency_heuristic_score": probs
@@ -122,11 +121,10 @@ def map_sensationalism_from_counts(row):
     else:
         return 2
 
-def build_sensationalism_model(df_train):
+def build_sensationalism_model(df_train,n_estimators=300, max_depth=6,eval_metric='mlogloss',
+                               learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, random_state=42):
 
-    for df in [df_train, df_val, df_test]:
-        df["sensationalism"] = df.apply(map_sensationalism_from_counts, axis=1)
-
+    df_train["sensationalism"] = df_train.apply(map_sensationalism_from_counts, axis=1)
 
     feats = df_train["statement"].apply(extract_text_features)
     df_train[["exclaim","allcaps","sens_words","polarity","subjectivity"]] = pd.DataFrame(feats.tolist(), index=df_train.index)
@@ -140,14 +138,13 @@ def build_sensationalism_model(df_train):
     ])
 
     model = XGBClassifier(
-        num_class=3,
-        n_estimators=300,
-        learning_rate=0.1,
-        max_depth=6,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        random_state=42,
-        eval_metric="mlogloss"
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        max_depth=max_depth,
+        subsample=subsample,
+        colsample_bytree=colsample_bytree,
+        random_state=random_state,
+        eval_metric=eval_metric
     )
 
     pipeline = Pipeline([
@@ -173,7 +170,6 @@ def predict_sensationalism_model(df, pipeline, numeric_features):
     probs = pipeline.predict_proba(X).max(axis=1)
 
     return pd.DataFrame({
-        "id": df["id"],
         "statement": df["statement"],
         "predicted_sensationalism": preds,
         "sensationalism_score": probs
@@ -194,7 +190,7 @@ def extract_text_features(text):
 
 
 # Malicious Account
-def build_malicious_account_model(df_train):
+def build_malicious_account_model(df_train, n_estimators=200, random_state=42):
     tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
     tfidf_matrix_train = tfidf.fit_transform(df_train['statement'])
 
@@ -235,7 +231,7 @@ def build_malicious_account_model(df_train):
 
     model = Pipeline([
         ("scaler", StandardScaler()),
-        ("clf", RandomForestClassifier(n_estimators=200, random_state=42))
+        ("clf", RandomForestClassifier(n_estimators=n_estimators, random_state=random_state))
     ])
     model.fit(X_train, y_train)
 
@@ -291,7 +287,6 @@ def predict_malicious_account_model(df, model, tfidf, le):
     malicious_scores = [label_to_score.get(lbl, 1) for lbl in pred_labels]
 
     return pd.DataFrame({
-        "id": df["id"],
         "statement": df["statement"],
         "predicted_malicious_account": malicious_scores,
         "malicious_account_score": probs
@@ -331,9 +326,9 @@ def extract_naive_realism_features(text):
     )
 
 
-def build_naive_realism_model(df_train, df_val, df_test):
-    for df in [df_train, df_val, df_test]:
-        df["naive_realism"] = df["statement"].apply(map_naive_realism_from_sentiment)
+def build_naive_realism_model(df_train,n_estimators=300, max_depth=6,eval_metric='mlogloss',
+                               learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, random_state=42):
+    df_train["naive_realism"] = df_train["statement"].apply(map_naive_realism_from_sentiment)
 
     feats = df_train["statement"].apply(extract_naive_realism_features)
     df_train[["absolute_ratio", "cautious_ratio", "dismissive_count"]] = pd.DataFrame(
@@ -349,14 +344,13 @@ def build_naive_realism_model(df_train, df_val, df_test):
     ])
 
     model = XGBClassifier(
-        num_class=3,
-        n_estimators=300,
-        learning_rate=0.1,
-        max_depth=6,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        random_state=42,
-        eval_metric="mlogloss"
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        max_depth=max_depth,
+        subsample=subsample,
+        colsample_bytree=colsample_bytree,
+        random_state=random_state,
+        eval_metric=eval_metric
     )
 
     pipeline = Pipeline([
@@ -383,7 +377,6 @@ def predict_naive_realism_model(df, pipeline, numeric_features):
     probs = pipeline.predict_proba(X).max(axis=1)
 
     return pd.DataFrame({
-        "id": df["id"],
         "statement": df["statement"],
         "predicted_naive_realism": preds,
         "naive_realism_score": probs
