@@ -143,28 +143,37 @@ def factuality_score(article_text):
 def index():
     return render_template("index.html")
 
-def save_to_csv(article_text, parsed):
+def save_to_csv(article_url, parsed):
     run_id = str(uuid.uuid4())
+
+    freq_conf = parsed["frequency_heuristic"]["confidence"]
+    mal_conf = parsed["malicious_account"]["confidence"]
+    sens_conf = parsed["sensationalism"]["confidence"]
+    naive_conf = parsed["naive_realism"]["confidence"]
+
+    overall_conf = (freq_conf + mal_conf + sens_conf + naive_conf) / 4
 
     row = {
         "id": run_id,
-        "article": article_text,
+        "url": article_url,
 
         "freq_score": parsed["frequency_heuristic"]["score"],
         "freq_reason": parsed["frequency_heuristic"]["reasoning"],
-        "freq_confidence": parsed["frequency_heuristic"]["confidence"],
+        "freq_confidence": freq_conf,
 
         "mal_score": parsed["malicious_account"]["score"],
         "mal_reason": parsed["malicious_account"]["reasoning"],
-        "mal_confidence": parsed["malicious_account"]["confidence"],
+        "mal_confidence": mal_conf,
 
         "sens_score": parsed["sensationalism"]["score"],
         "sens_reason": parsed["sensationalism"]["reasoning"],
-        "sens_confidence": parsed["sensationalism"]["confidence"],
+        "sens_confidence": sens_conf,
 
         "naive_score": parsed["naive_realism"]["score"],
         "naive_reason": parsed["naive_realism"]["reasoning"],
-        "naive_confidence": parsed["naive_realism"]["confidence"]
+        "naive_confidence": naive_conf,
+
+        "overall_confidence": overall_conf
     }
 
     df_row = pd.DataFrame([row])
@@ -175,9 +184,11 @@ def save_to_csv(article_text, parsed):
     else:
         df_row.to_csv(csv_path, index=False)
 
+
 @app.route("/score", methods=["POST"])
 def score():
     article_text = request.form.get("article", "")
+    article_url = request.form.get("article_url", "")
 
     if not article_text.strip():
         return jsonify({"error": "No article text provided"}), 400
@@ -198,7 +209,7 @@ def score():
 
             parsed = json.loads(json_str)
 
-            save_to_csv(article_text, parsed)
+            save_to_csv(article_url, parsed)
 
         except Exception:
             return jsonify({"error": "Model returned invalid JSON", "raw": raw_output}), 500
