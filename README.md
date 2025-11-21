@@ -47,18 +47,6 @@ git clone https://github.com/JacquelynGarcia/DSC180A-Q1Project.git
 cd DSC180A-Q1Project
 ```
 
-### Download the LIAR-PLUS dataset
-This project relies on the [LIAR-PLUS dataset](https://www.kaggle.com/datasets/saketchaturvedi/liarplus), which contains labeled political statements with metadata such as subjects, speakers, and contexts.
-
-1. Visit the Kaggle dataset page:  
-   🔗 https://www.kaggle.com/datasets/saketchaturvedi/liarplus  
-2. Download the dataset ZIP file.  
-3. Extract it and locate the following files:
-   - `train2.tsv`
-   - `val2.tsv`
-   - `test2.tsv`
-4. Place these files in a new folder named `data/` inside the project root.
-
 ### Create virtual environment
 ```bash
 python -m venv venv
