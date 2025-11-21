@@ -26,25 +26,25 @@ def main():
     model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq = build_frequency_model(df_train, **freq_cfg)
     print("Frequency Heuristic model trained.")
 
-    echo_cfg = cfg["models"]["echo_chamber"]
-    model_echo, vectorizer_echo, le_echo, concentration_map = build_echo_chamber_model(df_train, **echo_cfg)
-    print("Echo Chamber model trained.")
+    # echo_cfg = cfg["models"]["echo_chamber"]
+    # model_echo, vectorizer_echo, le_echo, concentration_map = build_echo_chamber_model(df_train, **echo_cfg)
+    # print("Echo Chamber model trained.")
 
     sens_cfg = cfg["models"]["sensationalism"]
-    sens_pipeline, sens_preproc, sens_meta, sens_num = build_sensationalism_model(
+    sens_pipeline, sens_meta, sens_num = build_sensationalism_model(
         df_train, df_val, df_test,**sens_cfg)
     print("Sensationalism model trained.")
 
-    cred_cfg = cfg["models"]["credibility"]
-    cred_pipeline, party_enc_cred = build_credibility_model(df_train, df_val, df_test, **cred_cfg)
-    print("Credibility model trained.")
+    # cred_cfg = cfg["models"]["credibility"]
+    # cred_pipeline, party_enc_cred = build_credibility_model(df_train, df_val, df_test, **cred_cfg)
+    # print("Credibility model trained.")
 
     (party_clf, party_le), (job_clf, job_le) = train_party_and_job_models(df_train)
 
     freq_model = (model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq)
-    echo_model = (model_echo, vectorizer_echo, le_echo, concentration_map)
-    sens_model = (sens_pipeline, sens_preproc, sens_meta, sens_num)
-    cred_model = (cred_pipeline, party_enc_cred)
+    # echo_model = (model_echo, vectorizer_echo, le_echo, concentration_map)
+    sens_model = (sens_pipeline, sens_meta, sens_num)
+    # cred_model = (cred_pipeline, party_enc_cred)
     job_party_model = (job_clf, job_le, party_clf, party_le)
 
     # Use trained models to predict scores for new articles
@@ -55,9 +55,9 @@ def main():
     article_analysis = evaluate_article(
         url, 
         freq_model, 
-        echo_model, 
+        # echo_model, 
         sens_model, 
-        cred_model, 
+        # cred_model, 
         job_party_model
     )
     

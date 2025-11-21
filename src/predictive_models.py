@@ -129,115 +129,115 @@ def predict_frequency_model(df, model, tfidf, count_vec, token_dict, buzzwords, 
         "frequency_heuristic_score": probs
     })
 
-# Echo Chamber Model
-def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_rate=0.1,
-                             subsample=0.8, colsample_bytree=0.8, random_state=42):
-    """
-    Build an echo chamber detection model. Identifies political bias by analyzing party 
-    concentration, political content indicators, and text features.
-    """
-    topic_party_counts = (df_train.groupby(["subject", "party"]).size().unstack(fill_value=0))
+# # Echo Chamber Model
+# def build_echo_chamber_model(df_train, n_estimators=300, max_depth=6, learning_rate=0.1,
+#                              subsample=0.8, colsample_bytree=0.8, random_state=42):
+#     """
+#     Build an echo chamber detection model. Identifies political bias by analyzing party 
+#     concentration, political content indicators, and text features.
+#     """
+#     topic_party_counts = (df_train.groupby(["subject", "party"]).size().unstack(fill_value=0))
 
-    # Calculate party concentration for each topic 
-    topic_party_counts["party_concentration"] = (topic_party_counts.max(axis=1) / topic_party_counts.sum(axis=1))
+#     # Calculate party concentration for each topic 
+#     topic_party_counts["party_concentration"] = (topic_party_counts.max(axis=1) / topic_party_counts.sum(axis=1))
 
-    concentration_map = topic_party_counts["party_concentration"].to_dict()
+#     concentration_map = topic_party_counts["party_concentration"].to_dict()
 
-    df_train["echo_chamber"] = df_train["subject"].map(concentration_map)
+#     df_train["echo_chamber"] = df_train["subject"].map(concentration_map)
 
-    def categorize_echo(value):
-        """Convert concentration to categorical classes."""
-        if value <= 0.4:
-            return 0
-        elif value <= 0.6:
-            return 1
-        elif value <= 0.8:
-            return 2
-        else:
-            return 3
+#     def categorize_echo(value):
+#         """Convert concentration to categorical classes."""
+#         if value <= 0.4:
+#             return 0
+#         elif value <= 0.6:
+#             return 1
+#         elif value <= 0.8:
+#             return 2
+#         else:
+#             return 3
 
-    df_train["echo_chamber_4class"] = df_train["echo_chamber"].apply(categorize_echo)
+#     df_train["echo_chamber_4class"] = df_train["echo_chamber"].apply(categorize_echo)
 
-    # Balance classes using upsampling
-    dfs = []
-    max_size = df_train["echo_chamber_4class"].value_counts().max()
-    for cls in df_train["echo_chamber_4class"].unique():
-        df_cls = df_train[df_train["echo_chamber_4class"] == cls]
-        df_cls_upsampled = resample(df_cls, replace=True, n_samples=max_size, random_state=42)
-        dfs.append(df_cls_upsampled)
-    df_train_bal = pd.concat(dfs).sample(frac=1, random_state=42).reset_index(drop=True)
+#     # Balance classes using upsampling
+#     dfs = []
+#     max_size = df_train["echo_chamber_4class"].value_counts().max()
+#     for cls in df_train["echo_chamber_4class"].unique():
+#         df_cls = df_train[df_train["echo_chamber_4class"] == cls]
+#         df_cls_upsampled = resample(df_cls, replace=True, n_samples=max_size, random_state=42)
+#         dfs.append(df_cls_upsampled)
+#     df_train_bal = pd.concat(dfs).sample(frac=1, random_state=42).reset_index(drop=True)
 
-    df_train_bal["subject_length"] = df_train_bal["subject"].apply(lambda x: len(str(x).split(",")))
-    df_train_bal["is_political"] = df_train_bal["subject"].apply(
-        lambda x: int("politics" in str(x).lower() or "election" in str(x).lower())
-    )
+#     df_train_bal["subject_length"] = df_train_bal["subject"].apply(lambda x: len(str(x).split(",")))
+#     df_train_bal["is_political"] = df_train_bal["subject"].apply(
+#         lambda x: int("politics" in str(x).lower() or "election" in str(x).lower())
+#     )
 
-    le = LabelEncoder()
-    df_train_bal["party_encoded"] = le.fit_transform(df_train_bal["party"].fillna("none"))
+#     le = LabelEncoder()
+#     df_train_bal["party_encoded"] = le.fit_transform(df_train_bal["party"].fillna("none"))
 
-    vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
-    X_train_tfidf = vectorizer.fit_transform(df_train_bal["statement"])
+#     vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
+#     X_train_tfidf = vectorizer.fit_transform(df_train_bal["statement"])
 
-    X_train_full = hstack([
-        X_train_tfidf, 
-        df_train_bal[["subject_length", "is_political", "party_encoded"]].values
-    ])
+#     X_train_full = hstack([
+#         X_train_tfidf, 
+#         df_train_bal[["subject_length", "is_political", "party_encoded"]].values
+#     ])
 
-    y_train = df_train_bal["echo_chamber_4class"]
+#     y_train = df_train_bal["echo_chamber_4class"]
 
-    model = XGBClassifier(
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        learning_rate=learning_rate,
-        subsample=subsample,
-        colsample_bytree=colsample_bytree,
-        random_state=random_state,
-        eval_metric="mlogloss",
-    )
+#     model = XGBClassifier(
+#         n_estimators=n_estimators,
+#         max_depth=max_depth,
+#         learning_rate=learning_rate,
+#         subsample=subsample,
+#         colsample_bytree=colsample_bytree,
+#         random_state=random_state,
+#         eval_metric="mlogloss",
+#     )
 
-    model.fit(X_train_full, y_train)
+#     model.fit(X_train_full, y_train)
 
-    return model, vectorizer, le, concentration_map
+#     return model, vectorizer, le, concentration_map
 
-def predict_echo_chamber_model(df, model, vectorizer, le, concentration_map):
-    """
-    Make predictions using the echo chamber model.
-    """
-    df = df.copy()
-    df["echo_chamber"] = df["subject"].map(concentration_map)
+# def predict_echo_chamber_model(df, model, vectorizer, le, concentration_map):
+#     """
+#     Make predictions using the echo chamber model.
+#     """
+#     df = df.copy()
+#     df["echo_chamber"] = df["subject"].map(concentration_map)
 
-    def categorize_echo(value):
-        """Convert continuous concentration to categorical classes."""
-        if value <= 0.4:
-            return 0
-        elif value <= 0.6:
-            return 1
-        elif value <= 0.8:
-            return 2
-        else:
-            return 3
+#     def categorize_echo(value):
+#         """Convert continuous concentration to categorical classes."""
+#         if value <= 0.4:
+#             return 0
+#         elif value <= 0.6:
+#             return 1
+#         elif value <= 0.8:
+#             return 2
+#         else:
+#             return 3
 
-    df["echo_chamber_4class"] = df["echo_chamber"].apply(categorize_echo)
+#     df["echo_chamber_4class"] = df["echo_chamber"].apply(categorize_echo)
 
-    df["subject_length"] = df["subject"].apply(lambda x: len(str(x).split(",")))
-    df["is_political"] = df["subject"].apply(lambda x: int("politics" in str(x).lower() or "election" in str(x).lower()))
-    df["party_encoded"] = le.fit_transform(df["party"].fillna("none"))
+#     df["subject_length"] = df["subject"].apply(lambda x: len(str(x).split(",")))
+#     df["is_political"] = df["subject"].apply(lambda x: int("politics" in str(x).lower() or "election" in str(x).lower()))
+#     df["party_encoded"] = le.fit_transform(df["party"].fillna("none"))
 
-    X_tfidf = vectorizer.transform(df["statement"])
-    X_full = hstack([X_tfidf, df[["subject_length", "is_political", "party_encoded"]].values])
+#     X_tfidf = vectorizer.transform(df["statement"])
+#     X_full = hstack([X_tfidf, df[["subject_length", "is_political", "party_encoded"]].values])
 
-    # Make predictions
-    preds = model.predict(X_full)
-    probs = model.predict_proba(X_full).max(axis=1)
+#     # Make predictions
+#     preds = model.predict(X_full)
+#     probs = model.predict_proba(X_full).max(axis=1)
 
-    return pd.DataFrame(
-        {
-            "id": df["id"],
-            "statement": df["statement"],
-            "predicted_echo_class": preds,
-            "echo_chamber_score": probs,
-        }
-    )
+#     return pd.DataFrame(
+#         {
+#             "id": df["id"],
+#             "statement": df["statement"],
+#             "predicted_echo_class": preds,
+#             "echo_chamber_score": probs,
+#         }
+#     )
 
 # Sensationalism Model
 def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
@@ -287,7 +287,7 @@ def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_
     df_train[["exclaim","allcaps","sens_words","polarity","subjectivity"]] = pd.DataFrame(feats.tolist(), index=df_train.index)
 
     text_col = "statement"
-    meta_features = ["speaker", "party", "context", "job"]
+    meta_features = ["speaker", "context", "job"]
     numeric_features = ["exclaim", "allcaps", "sens_words", "polarity", "subjectivity"]
 
     preprocessor = ColumnTransformer([
@@ -316,9 +316,9 @@ def build_sensationalism_model(df_train, df_val, df_test, n_estimators=300, max_
 
     pipeline.fit(X_train, y_train)
 
-    return pipeline, preprocessor, meta_features, numeric_features
+    return pipeline, meta_features, numeric_features
 
-def predict_sensationalism_model(df, pipeline, preprocessor, meta_features, numeric_features):
+def predict_sensationalism_model(df, pipeline, meta_features, numeric_features):
     """
     Make predictions using the sensationalism model.
     """
@@ -352,127 +352,127 @@ def predict_sensationalism_model(df, pipeline, preprocessor, meta_features, nume
         "sensationalism_score": probs
     })
 
-# Credibility Model
-def build_credibility_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
-                            learning_rate=0.1, subsample=0.8, colsample_bytree=0.8,
-                            random_state=42):
-    """
-    Build a credibility assessment model by analyzing expertise levels, subjectivity, 
-    political party affiliations, and text.
-    """
-    # Map LiarPLUS labels to credibility levels
-    credibility_map = {
-        "pants-fire": 0,    # Low credibility
-        "false": 0,         # Low credibility
-        "barely-true": 1,   # Medium credibility
-        "half-true": 1,     # Medium credibility
-        "mostly-true": 2,   # High credibility
-        "true": 2           # High credibility
-    }
+# # Credibility Model
+# def build_credibility_model(df_train, df_val, df_test, n_estimators=300, max_depth=6,
+#                             learning_rate=0.1, subsample=0.8, colsample_bytree=0.8,
+#                             random_state=42):
+#     """
+#     Build a credibility assessment model by analyzing expertise levels, subjectivity, 
+#     political party affiliations, and text.
+#     """
+#     # Map LiarPLUS labels to credibility levels
+#     credibility_map = {
+#         "pants-fire": 0,    # Low credibility
+#         "false": 0,         # Low credibility
+#         "barely-true": 1,   # Medium credibility
+#         "half-true": 1,     # Medium credibility
+#         "mostly-true": 2,   # High credibility
+#         "true": 2           # High credibility
+#     }
 
-    for df in [df_train, df_val, df_test]:
-        df["credibility"] = df["label"].map(credibility_map)
+#     for df in [df_train, df_val, df_test]:
+#         df["credibility"] = df["label"].map(credibility_map)
 
-    # Extract subjectivity as a credibility indicator
-    # More subjective content may be less credible
-    for df in [df_train, df_val, df_test]:
-        df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
+#     # Extract subjectivity as a credibility indicator
+#     # More subjective content may be less credible
+#     for df in [df_train, df_val, df_test]:
+#         df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
 
-    def encode_expertise(job):
-        """
-        Encode job titles into expertise levels.
-        Higher levels indicate more credible sources.
-        """
-        job = str(job).lower()
-        if any(w in job for w in ["professor","scientist","researcher","doctor","expert"]):
-          return 4  # Highest expertise
-        elif any(w in job for w in ["senator","governor","mayor","politician","president"]):
-          return 3  # High expertise
-        elif any(w in job for w in ["journalist","reporter","editor"]):
-          return 2  # Medium expertise 
-        elif any(w in job for w in ["actor","comedian","celebrity"]):
-          return 1  # Low expertise 
-        else:
-          return 0  # Unknown
+#     def encode_expertise(job):
+#         """
+#         Encode job titles into expertise levels.
+#         Higher levels indicate more credible sources.
+#         """
+#         job = str(job).lower()
+#         if any(w in job for w in ["professor","scientist","researcher","doctor","expert"]):
+#           return 4  # Highest expertise
+#         elif any(w in job for w in ["senator","governor","mayor","politician","president"]):
+#           return 3  # High expertise
+#         elif any(w in job for w in ["journalist","reporter","editor"]):
+#           return 2  # Medium expertise 
+#         elif any(w in job for w in ["actor","comedian","celebrity"]):
+#           return 1  # Low expertise 
+#         else:
+#           return 0  # Unknown
 
-    for df in [df_train, df_val, df_test]:
-        df["expertise_level"] = df["job"].apply(encode_expertise)
+#     for df in [df_train, df_val, df_test]:
+#         df["expertise_level"] = df["job"].apply(encode_expertise)
 
-    le_party = LabelEncoder()
-    all_parties = pd.concat([df_train["party"], df_val["party"], df_test["party"]]).fillna("unknown")
-    le_party.fit(all_parties)
-    for df in [df_train, df_val, df_test]:
-        df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
+#     le_party = LabelEncoder()
+#     all_parties = pd.concat([df_train["party"], df_val["party"], df_test["party"]]).fillna("unknown")
+#     le_party.fit(all_parties)
+#     for df in [df_train, df_val, df_test]:
+#         df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
 
-    text_col = "statement"
-    cat_features = ["party_encoded", "expertise_level"]  
-    num_features = ["subjectivity"]  
+#     text_col = "statement"
+#     cat_features = ["party_encoded", "expertise_level"]  
+#     num_features = ["subjectivity"]  
 
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("text", TfidfVectorizer(max_features=5000, stop_words="english"), text_col),
-            ("num", StandardScaler(), num_features),
-            ("cat", "passthrough", cat_features)
-        ],
-        remainder="drop"
-    )
+#     preprocessor = ColumnTransformer(
+#         transformers=[
+#             ("text", TfidfVectorizer(max_features=5000, stop_words="english"), text_col),
+#             ("num", StandardScaler(), num_features),
+#             ("cat", "passthrough", cat_features)
+#         ],
+#         remainder="drop"
+#     )
 
-    model = XGBClassifier(
-        n_estimators=n_estimators,
-        learning_rate=learning_rate,
-        max_depth=max_depth,
-        subsample=subsample,
-        colsample_bytree=colsample_bytree,
-        eval_metric="mlogloss",
-        random_state=random_state
-    )
+#     model = XGBClassifier(
+#         n_estimators=n_estimators,
+#         learning_rate=learning_rate,
+#         max_depth=max_depth,
+#         subsample=subsample,
+#         colsample_bytree=colsample_bytree,
+#         eval_metric="mlogloss",
+#         random_state=random_state
+#     )
 
-    pipeline = Pipeline([
-        ("features", preprocessor),
-        ("clf", model)
-    ])
+#     pipeline = Pipeline([
+#         ("features", preprocessor),
+#         ("clf", model)
+#     ])
 
-    X_train = df_train[[text_col] + cat_features + num_features]
-    y_train = df_train["credibility"]
+#     X_train = df_train[[text_col] + cat_features + num_features]
+#     y_train = df_train["credibility"]
 
-    pipeline.fit(X_train, y_train)
-    return pipeline, le_party
+#     pipeline.fit(X_train, y_train)
+#     return pipeline, le_party
 
-def predict_credibility_model(df, pipeline, le_party):
-    """
-    Make predictions using the credibility model.
-    """
-    df = df.copy()
+# def predict_credibility_model(df, pipeline, le_party):
+#     """
+#     Make predictions using the credibility model.
+#     """
+#     df = df.copy()
 
-    df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
+#     df["subjectivity"] = df["statement"].apply(lambda t: TextBlob(str(t)).sentiment.subjectivity)
 
-    def encode_expertise(job):
-        job = str(job).lower()
-        if any(w in job for w in ["professor","scientist","researcher","doctor","expert"]):
-            return 4
-        elif any(w in job for w in ["senator","governor","mayor","politician","president"]):
-            return 3
-        elif any(w in job for w in ["journalist","reporter","editor"]):
-            return 2
-        elif any(w in job for w in ["actor","comedian","celebrity"]):
-            return 1
-        else:
-            return 0
-    df["expertise_level"] = df["job"].apply(encode_expertise)
-    df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
+#     def encode_expertise(job):
+#         job = str(job).lower()
+#         if any(w in job for w in ["professor","scientist","researcher","doctor","expert"]):
+#             return 4
+#         elif any(w in job for w in ["senator","governor","mayor","politician","president"]):
+#             return 3
+#         elif any(w in job for w in ["journalist","reporter","editor"]):
+#             return 2
+#         elif any(w in job for w in ["actor","comedian","celebrity"]):
+#             return 1
+#         else:
+#             return 0
+#     df["expertise_level"] = df["job"].apply(encode_expertise)
+#     df["party_encoded"] = le_party.transform(df["party"].fillna("unknown"))
 
-    X = df[["statement","party_encoded","expertise_level","subjectivity"]]
+#     X = df[["statement","party_encoded","expertise_level","subjectivity"]]
     
-    # Make predictions
-    preds = pipeline.predict(X)
-    probs = pipeline.predict_proba(X).max(axis=1)
+#     # Make predictions
+#     preds = pipeline.predict(X)
+#     probs = pipeline.predict_proba(X).max(axis=1)
 
-    return pd.DataFrame({
-        "id": df["id"],
-        "statement": df["statement"],
-        "predicted_credibility": preds,
-        "credibility_score": probs
-    })
+#     return pd.DataFrame({
+#         "id": df["id"],
+#         "statement": df["statement"],
+#         "predicted_credibility": preds,
+#         "credibility_score": probs
+#     })
 
 # Malicious Account
 def build_malicious_account_model(df_train):
@@ -621,7 +621,7 @@ def build_naive_realism_model(df_train, df_val, df_test):
     )
 
     text_col = "statement"
-    meta_features = ["speaker", "party", "context", "job"]
+    meta_features = ["speaker", "context", "job"]
     numeric_features = ["absolute_ratio", "cautious_ratio", "dismissive_count"]
 
     preprocessor = ColumnTransformer([
@@ -650,9 +650,9 @@ def build_naive_realism_model(df_train, df_val, df_test):
     y_train = df_train["naive_realism"]
     pipeline.fit(X_train, y_train)
 
-    return pipeline, preprocessor, meta_features, numeric_features
+    return pipeline, meta_features, numeric_features
 
-def predict_naive_realism_model(df, pipeline, preprocessor, meta_features, numeric_features):
+def predict_naive_realism_model(df, pipeline, meta_features, numeric_features):
     df = df.copy()
 
     feats = df["statement"].apply(extract_naive_realism_features)
