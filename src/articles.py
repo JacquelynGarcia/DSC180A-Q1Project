@@ -53,25 +53,6 @@ def fetch_article(url):
 
     return article_data
 
-# train classifiers to extract the "job" and "party" feature from new articles
-def train_party_model(df_train):
-    """
-    Train a classifier to predict political party from text.
-    """
-    # Filter out rows with missing party or statement data
-    party_df = df_train.dropna(subset=["party", "statement"])
-    party_le = LabelEncoder()
-    y_party = party_le.fit_transform(party_df["party"])
-
-    party_clf = Pipeline([
-        ("tfidf", TfidfVectorizer(max_features=5000, stop_words="english")),
-        ("logreg", LogisticRegression(max_iter=300, class_weight="balanced"))
-    ])
-
-    party_clf.fit(party_df["statement"], y_party)
-
-    return party_clf, party_le
-
 
 def train_job_model(df_train):
     """
@@ -90,14 +71,6 @@ def train_job_model(df_train):
     job_clf.fit(job_df["statement"], y_job)
     return job_clf, job_le
 
-def predict_party(text, party_clf, party_le):
-    """
-    Predict political party affiliation from text.
-    """
-    probs = party_clf.predict_proba([text])[0]
-    pred_label = party_le.inverse_transform([probs.argmax()])[0]
-    return pred_label
-
 
 def predict_job(text, job_clf, job_le):
     """
@@ -108,15 +81,14 @@ def predict_job(text, job_clf, job_le):
     return pred_label
 
 
-def train_party_and_job_models(df_train):
+def train_models(df_train):
     """
-    Train both party and job classification models.
+    Train job classifier
     """
-    party_clf, party_le = train_party_model(df_train)
     job_clf, job_le = train_job_model(df_train)
-    return (party_clf, party_le), (job_clf, job_le)
+    return (job_clf, job_le)
 
-def prepare_article_for_models(article, job_clf, job_le, party_clf, party_le):
+def prepare_article_for_models(article, job_clf, job_le):
     """
     Convert article data into the format expected by the trained frequency, echo chamber,
     sensationalism, and credibility models.
@@ -136,7 +108,6 @@ def prepare_article_for_models(article, job_clf, job_le, party_clf, party_le):
     subject = ", ".join(sorted(set(keywords + ents)))[:300]
     t = text.lower()
     job = predict_job(text, job_clf, job_le)
-    party = predict_party(text, party_clf, party_le)
     context = f"Article from {source} published {publish_date}"
     is_political = int("politic" in t or "election" in t or "senate" in t or "president" in t)
     subject_length = len(subject.split(",")) if subject else 0
@@ -147,7 +118,6 @@ def prepare_article_for_models(article, job_clf, job_le, party_clf, party_le):
         "subject": subject,                    # Topic/subject of article
         "speaker": author,                     # Article author
         "job": job,                           # Predicted job title
-        "party": party,                       # Predicted party affiliation
         "context": context,                   # Publication context
         "subject_length": subject_length,     # Subject complexity metric
         "is_political": is_political,         # Political content
@@ -157,22 +127,22 @@ def prepare_article_for_models(article, job_clf, job_le, party_clf, party_le):
 
     return df
 
-def evaluate_article(url, freq_model, echo_model, sens_model, cred_model, job_party_model):
+def evaluate_article(url, freq_model, echo_model,sens_model, cred_model, job_model):
     """
     Evaluate an article using all trained models
     """
     article = fetch_article(url)
-    job_clf, job_le, party_clf, party_le = job_party_model
-    df = prepare_article_for_models(article, job_clf, job_le, party_clf, party_le)
+    job_clf, job_le = job_model
+    df = prepare_article_for_models(article, job_clf, job_le)
 
     model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq = freq_model
     model_echo, vectorizer_echo, le_echo, concentration_map = echo_model
-    sens_pipeline, sens_preproc, sens_meta, sens_num = sens_model
-    cred_pipeline, party_enc_cred = cred_model  
+    sens_pipeline, sens_meta, sens_num = sens_model
+    cred_pipeline, party_enc_cred = cred_model
 
     freq_result = predict_frequency_model(df, model_freq, tfidf_freq, count_vec_freq, token_dict_freq, buzzwords_freq, le_freq).iloc[0]
     echo_result = predict_echo_chamber_model(df, model_echo, vectorizer_echo, le_echo, concentration_map).iloc[0]
-    sens_result = predict_sensationalism_model(df, sens_pipeline, sens_preproc, sens_meta, sens_num).iloc[0]
+    sens_result = predict_sensationalism_model(df, sens_pipeline, sens_meta, sens_num).iloc[0]
     cred_result = predict_credibility_model(df, cred_pipeline, party_enc_cred).iloc[0]
 
     return {
