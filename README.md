@@ -23,7 +23,7 @@ DSC180A-Q1Project/
 │   └── test_set.csv  / test2.tsv
 │
 ├── notebooks/
-│   ├── eda_visualization.ipynb
+│   ├── eda_visualization.ipynb       # Exploratory visualizations for LIAR-PLUS dataset
 │   ├── model_accuracy.ipynb
 │   ├── prompting.ipynb
 │   ├── scraped_data.ipynb
