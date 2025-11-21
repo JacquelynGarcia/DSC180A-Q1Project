@@ -99,7 +99,7 @@ Once the dataset and environment are set up, you can execute all four factuality
 From the project root directory, run:
 
 ```bash
-python src/script.py
+python -m src.script
 ```
 
 If properly installed, the example console output should contain the following:
