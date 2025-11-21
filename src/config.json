@@ -1,10 +1,4 @@
 {
-  "data": {
-    "train_path": "data/train2.tsv",
-    "val_path": "data/val2.tsv",
-    "test_path": "data/test2.tsv"
-  },
-
   "models": {
     "frequency": {
       "n_estimators": 200,
