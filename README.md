@@ -154,6 +154,13 @@ Credibility Level: 1
 Credibility Score: 0.851
 ```
 
+## Running the Web Application
+The Flask UI lets you do the following:
+- Paste an article link
+- Paste article text
+- View scores for each factuality factor
+- View reasoning and confidence percentages
+
 ## Model Summaries
 Each model focuses on a different factuality factor within political statements, capturing linguistic, contextual, or behavioral patterns associated with truthfulness and bias.
 
