@@ -4,8 +4,8 @@
 This project aims to mitigate the gap of truth identification in an era where bias and sensationalism are prevalent in the political landscape through the use of mutliple factuality factors.
 We use the LIAR-PLUS dataset to train separate models for:
 
-- Frequency Heuristics - detecting overuse of buzzwords and repetition.  
-- Sensationalism - identifying exaggeration and emotional language.  
+- Frequency Heuristics - detecting repetition, buzzwords, and linguistic patterns that artificially enhance “truthiness.”
+- Sensationalism - identifying emotionally charged, exaggerated, or dramatic rhetoric.
 - Malicious Account Patterns – detecting linguistic markers commonly associated with bot-like or spammy messaging.
 - Naive Realism – capturing absolutist, polarized, or dismissive language that reflects cognitive bias
 
