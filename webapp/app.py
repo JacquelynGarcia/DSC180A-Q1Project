@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import os
 from google import genai
+from google.genai import types
 import json
 import pandas as pd
 import uuid
