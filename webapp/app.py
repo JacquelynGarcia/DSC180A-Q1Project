@@ -47,6 +47,66 @@ naive_pipeline, naive_numeric_features = build_naive_realism_model(train_df)
 
 print("All models initialized.")
 
+# Getting Model Scores
+def get_model_scores(article_text: str) -> dict:
+    """
+    Run all factuality ML models on the given article text.
+
+    Args:
+        article_text: Full article text pasted by the user.
+
+    Returns:
+        A dict with model-derived scores for each factuality factor.
+        Each factor has:
+          - model_score: discrete level (0, 1, 2)
+          - model_confidence: probability [0, 1]
+    """
+    # Wrap the article in a one-row DataFrame matching your model API
+    df = pd.DataFrame({"statement": [article_text]})
+
+    # Frequency
+    freq_df = predict_frequency_model(
+        df,
+        freq_model, freq_tfidf, freq_count_vec,
+        freq_token_dict, freq_buzzwords, freq_le
+    )
+    freq_level = int(freq_df["predicted_frequency_heuristic"].iloc[0])
+    freq_conf  = float(freq_df["frequency_heuristic_score"].iloc[0])
+
+    # Sensationalism
+    sens_df = predict_sensationalism_model(df, sens_pipeline, sens_numeric_features)
+    sens_level = int(sens_df["predicted_sensationalism"].iloc[0])
+    sens_conf  = float(sens_df["sensationalism_score"].iloc[0])
+
+    # Malicious Account
+    mal_df = predict_malicious_account_model(df, mal_model, mal_tfidf, mal_le)
+    mal_level = int(mal_df["predicted_malicious_account"].iloc[0])
+    mal_conf  = float(mal_df["malicious_account_score"].iloc[0])
+
+    # Naive Realism
+    naive_df = predict_naive_realism_model(df, naive_pipeline, naive_numeric_features)
+    naive_level = int(naive_df["predicted_naive_realism"].iloc[0])
+    naive_conf  = float(naive_df["naive_realism_score"].iloc[0])
+
+    return {
+        "frequency_heuristic": {
+            "model_score": freq_level,
+            "model_confidence": freq_conf,
+        },
+        "sensationalism": {
+            "model_score": sens_level,
+            "model_confidence": sens_conf,
+        },
+        "malicious_account": {
+            "model_score": mal_level,
+            "model_confidence": mal_conf,
+        },
+        "naive_realism": {
+            "model_score": naive_level,
+            "model_confidence": naive_conf,
+        },
+    }
+
 # Prompting
 def factuality_score(article_text):
     """
