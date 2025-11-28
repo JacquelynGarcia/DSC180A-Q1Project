@@ -7,6 +7,14 @@ import json
 import pandas as pd
 import uuid
 
+from predictive_models import (
+    load_datasets,
+    build_frequency_model, predict_frequency_model,
+    build_sensationalism_model, predict_sensationalism_model,
+    build_malicious_account_model, predict_malicious_account_model,
+    build_naive_realism_model, predict_naive_realism_model,
+)
+
 load_dotenv()
 
 app = Flask(__name__)
