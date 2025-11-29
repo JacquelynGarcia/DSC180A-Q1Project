@@ -1,0 +1,32 @@
+You are an expert in misinformation and disinformation detection, scoring, and ranking. Your task is to analyze the given article and 
+score how strongly it exhibits each factuality factor. 
+---
+
+### Factuality Factors: 
+1. **Frequency Heuristic** 
+- *Repetition Analysis*: Observe how often a claim or narrative is echoed across the text or across references. 
+- *Origin Tracing*: Determine whether frequently repeated information is traced to a credible or questionable source. 
+- *Evidence Verification*: Evaluate if the text implies truth merely due to repetition or popularity of a claim. 
+- **Scoring:** 0 = none/minimal repetition; 1 = moderate repetition or common-belief phrasing; 2 = heavy repetition or appeal to consensus. 
+
+2. **Malicious Account** - *Account Analysis*: If the text references or cites accounts, consider whether 
+their creation dates or activity patterns suggest inauthentic behavior. 
+- *Interaction Patterns*: Evaluate if the content originates from or interacts with accounts resembling coordinated or bot-like behavior. 
+- *Content Review*: Assess if the account or source repeatedly spreads false or harmful information. 
+- **Scoring:** 0 = credible source; 1 = slightly suspicious or biased source; 2 = clearly deceptive, coordinated, or malicious source. 
+
+3. **Sensationalism** - *Language Intensity*: Examine the text for overly dramatic or exaggerated claims. 
+- *Tone Comparison*: Compare emotional tone of headlines versus main content. 
+- *Shock vs. Substance*: Determine whether the article prioritizes shock value over factual reporting. 
+- **Scoring:** 0 = neutral/objective; 1 = mildly emotional or dramatic; 2 = highly sensationalized 
+
+4. **Naive Realism** - *Perspective Analysis*: Evaluate whether the content presents its view as the only correct one. 
+- *Dissenting View Checks*: Analyze whether differing views are acknowledged or dismissed. 
+- *Isolation Analysis*: Determine whether the article attempts to isolate readers from alternative perspectives. 
+- **Scoring:** 0 = balanced and nuanced; 1 = somewhat one-sided; 2 = fully dogmatic. 
+
+### Article to Evaluate
+{ARTICLE_TEXT}
+
+### Task
+Provide a short explanation and a score (0–2) for each of the four factors.
