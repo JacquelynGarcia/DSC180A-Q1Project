@@ -20,7 +20,7 @@ score how strongly it exhibits each factuality factor.
 - Score: 0 = balanced; 1 = somewhat one-sided; 2 = dogmatic or absolutist.
 
 ### Article to Evaluate
-{ARTICLE_TEXT}
+{article_text}
 
 ### Task
 Provide a score (0–2), justification, and confidence level on a scale from 0-100% for each of the four factuality factors.
