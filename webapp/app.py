@@ -123,7 +123,7 @@ def factuality_score(article_text):
     score how strongly it exhibits each factuality factor. 
     ---
 
-    ### Factuality Factors: 
+    ## Factuality Factors: 
     1. **Frequency Heuristic** 
     - *Repetition Analysis*: Observe how often a claim or narrative is echoed across the text or across references. 
     - *Origin Tracing*: Determine whether frequently repeated information is traced to a credible or questionable source. 
@@ -146,7 +146,7 @@ def factuality_score(article_text):
     - *Isolation Analysis*: Determine whether the article attempts to isolate readers from alternative perspectives. 
     - **Scoring:** 0 = balanced and nuanced; 1 = somewhat one-sided; 2 = fully dogmatic. 
 
-    ### Examples 
+    ## Examples 
     **Example 1:** Article: The Federal Reserve announced a 0.25% interest rate increase following its quarterly meeting. 
     Economists had predicted the move based on recent inflation data. 
     Frequency Heuristic: 0 — Single statement of fact with proper attribution and no repetitive framing. 
@@ -216,9 +216,27 @@ def factuality_score(article_text):
     Sensationalism: 1 — 'Cured chronic illness' is dramatic claim but is presented as a quote from influencer. 
     Naive Realism: 1 — Amplifies an unverified claim but includes expert skepticism. 
 
-    ### Article to Evaluate: {article_text}
+    ## Dual Objective Functions
+    Your reasoning and scoring must optimize **both** of the following objectives:
 
-    ### Tool you can call
+    ### **Objective 1: MAXIMIZE Coverage**
+    - Comprehensively assess all aspects of each factuality factor across the entire article
+    - For each factor examine: 
+        - Frequency Heuristic: Check ALL instances of repeated claims and popularity appeals throughout the article.
+        - Malicious Account: Evaluate EVERY source, citation, and attribution mentioned in the article.
+        - Sensationalism: Analyze ALL emotional language, exaggerations, and dramatic framing across the text.
+        - Naive Realism: Review ALL perspectives presented (or missing) and instances of one-sided framing. 
+    - Formula: (Number of sentences examined for each factor) / (Total sentences in article) × 100%
+        - Target: Achieve 100% - every sentence must be thoroughly examined. 
+
+    ### **Objective 2: MINIMIZE Hallucinations**
+    - Only cite evidence that exists in the article text. Avoid inferring, assuming, or fabricating patterns.
+    - **Hallucination Check Formula**: (Number of claims WITH direct textual quotes) / (Total claims made) × 100%
+        - Target: Achieve 100% - every claim must be grounded in actual article text.
+
+    ## Article to Evaluate: {article_text}
+
+    ## Tool you can call
     You have access to a function called `get_model_scores(article_text: str)` which returns
     model-derived scores for each factuality factor, in the following structure:
 
@@ -243,15 +261,18 @@ def factuality_score(article_text):
 
     Treat these model scores as informative context, NOT ground truth. You must reason independently.
 
-    ### Instructions: 
-    1. First, think step-by-step about the article's tone, evidence, framing, and intent. 
-    2. Call get_model_scores(article_text) to inspect the ML model predictions.
-    3. Use both your analysis and the tool outputs to provide a numeric score, a justification,
+    ## Evaluation Proccess: 
+    1. You will peform 3 iterations to analyze the article, refining your evaluation each time. After each iteration,
+        identify what you missed based on the coverage and hallucination objective functions defined above. 
+    2. Think step-by-step about the article's tone, evidence, framing, and intent, and refine the current iteration to acheive
+    a greater score for each objective function. 
+    3. Call get_model_scores(article_text) to inspect the ML model predictions.
+    4. Use both your analysis and the tool outputs to provide a numeric score, a justification,
         and your confidence level in that assessment on a scale of 0-100%.
         If your score is different than the model_score, you must explain why you disagree. 
-    4. RETURN ONLY VALID JSON. DO NOT USE MARKDOWN. DO NOT USE ```json OR ANY CODE FENCES. OUTPUT ONLY A JSON OBJECT.
+    5. RETURN ONLY VALID JSON. DO NOT USE MARKDOWN. DO NOT USE ```json OR ANY CODE FENCES. OUTPUT ONLY A JSON OBJECT.
 
-    ### Output Format:
+    ## Output Format:
     {{
         "frequency_heuristic": {{
             "score": 0|1|2,
@@ -324,7 +345,7 @@ def save_to_csv(article_url, parsed):
     }
 
     df_row = pd.DataFrame([row])
-    csv_path = "results/function_calling_outputs.csv"
+    csv_path = "results/fcot_outputs.csv"
 
     if os.path.exists(csv_path):
         df_row.to_csv(csv_path, mode="a", header=False, index=False)
