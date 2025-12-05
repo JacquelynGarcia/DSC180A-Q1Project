@@ -60,15 +60,16 @@ DSC180A-Q1Project/
 ```
 
 ## Dataset
-This project uses the LIAR-PLUS dataset, an extended version of the original LIAR dataset.
+This project uses the LIAR-PLUS dataset, an extended version of the original LIAR dataset. We augmented this dataset with more recent
+scraped data from PolitiFact.
 This includes labeled political statements along with metadata such as subjects, speakers, party affiliations, and justifications.
 
 ### Dataset Summary
 | Split | File | Description |
 |-------|------|--------------|
-| **Train** | `train2.tsv` | Used to train all factuality models. |
-| **Validation** | `val2.tsv` | Used for tuning and intermediate evaluation. |
-| **Test** | `test2.tsv` | Used for final evaluation and analysis. |
+| **Train** | `train_set.csv` | Used to train all factuality models. |
+| **Validation** | `val_set.csv` | Used for tuning and intermediate evaluation. |
+| **Test** | `test_set.csv` | Used for final evaluation and analysis. |
 
 ## Installation
 
