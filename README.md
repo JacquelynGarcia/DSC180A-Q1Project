@@ -18,19 +18,19 @@ DSC180A-Q1Project/
 │   ├── article.txt                   # Article text for ingestion
 │   ├── ground_truth.csv              # Hand-labeled articles with appropriate factuality factor scores
 │   ├── politifact.csv                # Manually scraped data from Politifact.org to augment LIAR-PLUS dataset
-│   ├── train_set.csv / train2.tsv
-│   ├── val_set.csv   / val2.tsv
-│   └── test_set.csv  / test2.tsv
+│   ├── train_set.csv                 # Training set with new scraped data
+│   ├── train2.tsv                    # Original LiarPLUS train set
+│   ├── val_set.csv                   # Validation set with new scraped data
+│   ├── val2.tsv                      # Original LiarPLUS validation set
+│   ├── test_set.csv                  # Test set with new scraped data
+│   └── test2.tsv                     # Original LiarPLUS test set
 │
 ├── notebooks/
 │   ├── eda_visualization.ipynb       # Exploratory visualizations for LIAR-PLUS dataset
-│   ├── model_accuracy.ipynb          # Various accuracy scores for baseline models
-│   ├── prompting.ipynb               # Contains 20 incremental prompts refining the model and ending with function calling
-│   ├── scraped_data.ipynb            # Additonal scraped data from outside sources
-│   └── hand_labels_template.csv
-│
-├── research/                         # Final capstone research report
-│   └── DSC180A_Capstone_Report.pdf
+│   ├── metrics.ipynb                 # Accuracy scores for predictive models and LLM models
+│   ├── model_accuracy.ipynb          # Various performance metrics for baseline predictive models
+│   ├── prompting.ipynb               # Contains 20 incremental prompts refining the model 
+│   └── scraped_data.ipynb            # Additonal scraped data from Politifact added to LiarPLUS
 │
 ├── src/                              # Core project source code
 │   ├── __init__.py
@@ -41,7 +41,14 @@ DSC180A-Q1Project/
 │
 ├── webapp/                           # Flask-based UI for demo interactions
 │   ├── app.py                        # Flask entrypoint
-│   ├── data_outputs.csv              # Outputs saved from UI interactions
+|   ├── prompts/
+│   │   ├── base.txt                      # Base prompt for LLM 
+│   │   ├── chain_of_thought.txt          # LLM prompt incorporating chain of thought
+│   │   └── factal_chain_of_thought.txt   # LLM prompt incorporating fractal chain of thought
+|   ├── results/
+│   │   ├── base_outputs.csv              # Outputs saved from running LLM with base prompt
+│   │   ├── cot_outputs.csv               # Outputs saved from running LLM with chain of thought prompt
+│   │   └── fcot_outputs.csv              # Outputs saved from running LLM with fractal chain of thought prompt
 │   ├── static/
 │   │   └── style.css                 # CSS styling for UI
 │   └── templates/
