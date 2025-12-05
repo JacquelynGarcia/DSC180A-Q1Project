@@ -253,3 +253,5 @@ Outputs:
 During the early stages of this project, our team explored a broader set of factuality factors through exploratory data analysis and experimental modeling found within the `eda_visualization.ipynb` notebook. This notebook includes preliminary implementations of **Credibility** and **Echo Chamber** models, along with earlier versions of the **Frequency Heuristic** and **Sensationalism** models.
 
 As our methodology matured, we refined our framework to focus on four primary factuality dimensions for the final production pipeline which included **Frequency Heuristic**, **Sensationalism**, and the newly added **Naive Realism**, and **Malicious Account**.
+
+While **Credibility** and **Echo Chamber** are not included in the finalized model pipeline, exploratory versions of these models remain available in the `notebooks/` directory. Users who wish to extend the project, compare modeling strategies, or incorporate additional factuality factors are welcome to experiment with these earlier models.
