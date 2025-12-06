@@ -87,6 +87,12 @@ source venv/bin/activate # Mac/Linux
 venv\Scripts\activate # Windows
 ```
 
+### Create a .env file
+Create a `.env` file in the `webapp` folder and paste your API key from [Google AI Studio](https://aistudio.google.com).
+```env
+GEMINI_API_KEY=YOUR_API_KEY
+```
+
 ### Install dependencies
 ```bash
 pip install -r requirements.txt
